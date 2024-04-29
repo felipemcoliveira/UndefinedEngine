@@ -12,7 +12,7 @@ internal class UndefinedBuildTool
       CommandLineArguments commandLineArguments;
       try
       {
-         commandLineArguments = new(["-mode", "Buildd"]);
+         commandLineArguments = new(args);
       }
       catch (CommandLineParseException exception)
       {
