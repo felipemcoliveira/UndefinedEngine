@@ -1,5 +1,5 @@
 <Project>
     <PropertyGroup>
-        <MSBUildProjectExtensionsPath>..\..\..\Intermediate\DotNET\UndefinedHeaderTool</MSBUildProjectExtensionsPath>
+        <MSBUildProjectExtensionsPath>..\..\..\Intermediate\DotNET\UndefinedBuildTool</MSBUildProjectExtensionsPath>
     </PropertyGroup>
 </Project>
