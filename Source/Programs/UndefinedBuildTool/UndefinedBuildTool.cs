@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 using UndefinedCore;
 
 namespace UndefinedBuildTool;
@@ -32,22 +31,6 @@ internal class UndefinedBuildTool
       container.Set<ILogger>(logger);
 
       TryExecuteToolMode(commandLineArguments, logger, container);
-   }
-
-   private static string PascalCaseToSpacedString(string pascalCase)
-   {
-      StringBuilder builder = new();
-      for (int i = 0; i < pascalCase.Length; i++)
-      {
-         if (char.IsUpper(pascalCase[i]) && i > 0)
-         {
-            builder.Append(' ');
-         }
-
-         builder.Append(pascalCase[i]);
-      }
-
-      return builder.ToString();
    }
 
    private static void TryExecuteToolMode(CommandLineArguments commandLineArguments, ILogger logger, Container container)
