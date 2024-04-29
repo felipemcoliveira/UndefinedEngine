@@ -112,7 +112,19 @@ public class CommandLineArguments
 
    private void PopulateCommandTargets()
    {
-      foreach (Type type in Assembly.GetExecutingAssembly().GetTypes())
+      Assembly executingAssembly = Assembly.GetExecutingAssembly();
+      PopulateCommandTargets(executingAssembly);
+
+      Assembly? entryAssembly = Assembly.GetEntryAssembly();
+      if (entryAssembly != executingAssembly && entryAssembly != null)
+      {
+         PopulateCommandTargets(entryAssembly);
+      }
+   }
+
+   private void PopulateCommandTargets(Assembly assembly)
+   {
+      foreach (Type type in assembly.GetTypes())
       {
          foreach (FieldInfo memberInfo in type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
          {
