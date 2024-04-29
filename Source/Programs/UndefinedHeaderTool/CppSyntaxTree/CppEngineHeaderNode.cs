@@ -1,3 +1,5 @@
+using Range = UndefinedCore.Range;
+
 namespace UndefinedHeader.SyntaxTree;
 
 public class CppEngineHeaderNode(Range range, CppLexicalAnalysis lexicalAnalysis)

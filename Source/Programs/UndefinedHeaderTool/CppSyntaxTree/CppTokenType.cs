@@ -12,4 +12,5 @@ public enum CppTokenType
    EngineHeader = 1 << 6,
    BooleanLiteral = 1 << 7,
    PointerLiteral = 1 << 8,
+   EndOfFile = 1 << 9
 }

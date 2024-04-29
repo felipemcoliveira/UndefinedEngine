@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
+
+using Range = UndefinedCore.Range;
+
 namespace UndefinedHeader.SyntaxTree;
 
 public class CppSyntaxNode(Range tokensRange, CppLexicalAnalysis lexicalAnalysis) : IEnumerable<CppSyntaxNode>
@@ -32,7 +35,7 @@ public class CppSyntaxNode(Range tokensRange, CppLexicalAnalysis lexicalAnalysis
 
    public bool TryGetChildOfType<T>([NotNullWhen(true)] out T? child) where T : CppSyntaxNode
    {
-      foreach (var node in this)
+      foreach (CppSyntaxNode node in this)
       {
          if (node is T t)
          {
@@ -62,7 +65,7 @@ public class CppSyntaxNode(Range tokensRange, CppLexicalAnalysis lexicalAnalysis
          return;
       }
 
-      foreach (var node in nodes)
+      foreach (CppSyntaxNode node in nodes)
       {
          AddChild(node);
       }

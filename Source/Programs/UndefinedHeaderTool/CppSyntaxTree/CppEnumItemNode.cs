@@ -1,5 +1,7 @@
 using System.Diagnostics;
 
+using Range = UndefinedCore.Range;
+
 namespace UndefinedHeader.SyntaxTree;
 
 [DebuggerDisplay("UENUM {Identifier,nq}")]
@@ -18,7 +20,7 @@ public class CppEnumItemNode
       get
       {
          string identifier = LexicalAnalysis.GetTokenValue(IdentifierToken);
-         var enumNode = (CppEnumNode)Parent!;
+         CppEnumNode enumNode = (CppEnumNode)Parent!;
 
          Debug.Assert(enumNode != null);
 

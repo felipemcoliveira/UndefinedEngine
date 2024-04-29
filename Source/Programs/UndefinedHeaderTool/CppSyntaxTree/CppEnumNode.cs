@@ -1,5 +1,7 @@
 using System.Diagnostics;
 
+using Range = UndefinedCore.Range;
+
 namespace UndefinedHeader.SyntaxTree;
 
 [DebuggerDisplay("UENUM {Identifier,nq}")]

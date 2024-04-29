@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UndefinedCore;
 
 namespace UndefinedHeader.SyntaxTree;
 
@@ -329,7 +330,7 @@ internal class CppLexicalAnalyzer
             case >= 'A' and <= 'Z':
             {
                int startPosition = CurrentPosition;
-               TryConsumeIdentifier(out var identifier);
+               TryConsumeIdentifier(out ReadOnlySpan<char> identifier);
 
                if (TryConsume('"'))
                {
@@ -345,7 +346,7 @@ internal class CppLexicalAnalyzer
                   break;
                }
 
-               var type = GetIdentifierTokenType(identifier);
+               CppTokenType type = GetIdentifierTokenType(identifier);
                if (type == CppTokenType.EngineHeader)
                {
                   engineHeaderTokenIndices.Add(tokens.Count);
@@ -362,6 +363,7 @@ internal class CppLexicalAnalyzer
          }
       }
 
+      tokens.Add(new(EndOfFilePosition, 0, CppTokenType.EndOfFile));
       return new(tokens, engineHeaderTokenIndices, m_SourceCode);
    }
 
@@ -514,7 +516,7 @@ internal class CppLexicalAnalyzer
          break;
       }
 
-      TryConsumeIdentifier(out var delimiter);
+      TryConsumeIdentifier(out ReadOnlySpan<char> delimiter);
       if (!TryConsume('('))
       {
          throw new CppIllFormedCodeException(CurrentPosition, "Invalid raw string literal.");
@@ -561,7 +563,7 @@ internal class CppLexicalAnalyzer
 
       while (length > 0)
       {
-         var symbol = m_SourceCode.AsSpan().Slice(start, length);
+         ReadOnlySpan<char> symbol = m_SourceCode.AsSpan().Slice(start, length);
          if (s_AllSymbols.Contains(symbol))
          {
             CurrentPosition += length;
@@ -602,7 +604,7 @@ internal class CppLexicalAnalyzer
    internal static CppTokenType GetIdentifierTokenType(ReadOnlySpan<char> identifier)
    {
       int hashCode = string.GetHashCode(identifier);
-      if (!s_AllCppKeywords.TryGetValue(hashCode, out var entry))
+      if (!s_AllCppKeywords.TryGetValue(hashCode, out (string Identifier, CppTokenType Type) entry))
       {
          return CppTokenType.Identifier;
       }
@@ -626,7 +628,7 @@ internal class CppLexicalAnalyzer
    {
       start = CurrentPosition;
       length = 0;
-      if (IsEndOfFile || (CurrentCharacter != '_' && !char.IsLetter(CurrentCharacter)))
+      if (IsEndOfFile || CurrentCharacter != '_' && !char.IsLetter(CurrentCharacter))
       {
          return false;
       }
