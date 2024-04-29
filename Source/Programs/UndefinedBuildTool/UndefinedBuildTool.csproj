@@ -1,0 +1,68 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <StartupObject></StartupObject>
+    <BaseIntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedBuildTool</BaseIntermediateOutputPath>
+    <IntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedBuildTool</IntermediateOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>false</Optimize>
+    <OutputPath>..\..\..\Binaries\DotNET\UndefinedBuildTool\Debug</OutputPath>
+    <IntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedBuildTool\Debug</IntermediateOutputPath>
+    <DefineConstants>DEBUG</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\..\Binaries\DotNET\UndefinedBuildTool</OutputPath>
+    <IntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedBuildTool</IntermediateOutputPath>
+    <DefineConstants>NDEBUG</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Remove="CppSyntaxTree\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <EmbeddedResource Remove="Premake\**" />
+    <None Remove="CppSyntaxTree\**" />
+    <None Remove="obj\**" />
+    <EmbeddedResource Remove="bin\**" />
+    <None Remove="bin\**" />
+    <None Remove="Premake\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="BuildToolMode.cs" />
+    <Compile Include="GenerateProjectFilesToolMode.cs" />
+    <Compile Include="HelpToolMode.cs" />
+    <Compile Include="ToolMode.cs" />
+    <Compile Include="ToolModeAttribute.cs" />
+    <Compile Include="ToolModeOptions.cs" />
+    <Compile Include="ToolModeUtility.cs" />
+    <Compile Include="UndefinedBuildTool.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UndefinedCore\UndefinedCore.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\..\Binaries\ThirdParty\DotNET\Newtonsoft.Json\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

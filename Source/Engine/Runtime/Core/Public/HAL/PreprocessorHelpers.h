@@ -1,0 +1,9 @@
+#pragma once
+
+#include "Misc/Preprocessors.h"
+
+#if !defined(PLATFORM_IDENTIFIER)
+#error PLATFORM_IDENTIFIER not defined.
+#endif
+
+#define COMPILED_PLATFORM_HEADER(Suffix) PREPROCESSOR_TO_STRING(PREPROCESSOR_JOIN(PLATFORM_IDENTIFIER/PLATFORM_IDENTIFIER, Suffix))
