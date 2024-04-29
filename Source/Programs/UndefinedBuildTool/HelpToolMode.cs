@@ -84,7 +84,7 @@ public class HelpToolMode(CommandLineArguments commandLineArguments) : ToolMode
 
    private static string FormatEnumValues(CommandTarget argumentTarget)
    {
-      string[] names = Enum.GetNames(argumentTarget.Type);
+      string[] names = Enum.GetNames(TypeUtility.GetUderlyingType(argumentTarget.Type));
       return $"<{string.Join(" | ", names.Select(v => $"\"{v}\""))}>";
    }
 }

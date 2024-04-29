@@ -70,6 +70,7 @@
     <Compile Include="Range.cs" />
     <Compile Include="ScopedLogger.cs" />
     <Compile Include="StringHashSet.cs" />
+    <Compile Include="TypeUtility.cs" />
     <Compile Include="Version.cs" />
     <Compile Include="VisualStudioProductInfo.cs" />
     <Compile Include="VisualStudioUtility.cs" />
