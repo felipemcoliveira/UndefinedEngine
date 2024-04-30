@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <TargetFramework>net8.0</TargetFramework>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
@@ -63,6 +63,7 @@
     <Compile Include="CppSyntaxTree\CppSyntaxNode.cs" />
     <Compile Include="CppSyntaxTree\CppToken.cs" />
     <Compile Include="CppSyntaxTree\CppTokenType.cs" />
+    <Compile Include="UndefinedHeaderTool.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\UndefinedCore\UndefinedCore.csproj" />
