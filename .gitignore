@@ -1,4 +1,7 @@
 # Directories
 .vs/
-Binaries/
+Binaries/*
 Intermediate/
+
+# Required Third-Party Binaries
+!Binaries/ThirdParty/
