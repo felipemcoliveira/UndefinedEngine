@@ -77,7 +77,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\..\Binaries\ThirdParty\DotNET\Newtonsoft.Json\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\..\..\Binaries\ThirdParty\Newtonsoft\Json\Newtonsoft.Json.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>

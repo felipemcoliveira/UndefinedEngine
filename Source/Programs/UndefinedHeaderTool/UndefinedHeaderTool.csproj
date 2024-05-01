@@ -68,9 +68,4 @@
   <ItemGroup>
     <ProjectReference Include="..\UndefinedCore\UndefinedCore.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\..\Binaries\ThirdParty\DotNET\Newtonsoft.Json\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-  </ItemGroup>
 </Project>
