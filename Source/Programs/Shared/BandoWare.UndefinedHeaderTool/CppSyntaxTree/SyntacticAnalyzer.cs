@@ -13,7 +13,7 @@ internal partial class SyntacticAnalyzer
    private TokenType CurrentTokenType => CurrentToken.Type;
    private bool IsEndOfFile => CurrentToken.Type == TokenType.EndOfFile;
    private StringView CurrentTokenValue => CurrentToken.ValueView;
-   private int CurrentTokenPosition => CurrentToken.StartPosition;
+   private int CurrentTokenPosition => CurrentToken.ContentPosition;
 
    private static readonly HashSet<StringView> s_FunctionSpecifiers =
    [
@@ -82,21 +82,19 @@ internal partial class SyntacticAnalyzer
       "[]"
    ];
 
-   private readonly LexicalAnalysis m_LexicalAnalysis;
    private int m_Position;
    private Stack<char> m_DelimiterStack;
-
-   // copied from lexical analysis for faster access
    private string m_SourceCode;
    private List<Token> m_Tokens;
+   private List<int> m_EngineHeaderTokenIndices;
 
-   public SyntacticAnalyzer(LexicalAnalysis lexicalAnalysis)
+   public SyntacticAnalyzer(TokenizeResult tokenizeResult)
    {
-      m_LexicalAnalysis = lexicalAnalysis;
       m_Position = 0;
-      m_SourceCode = lexicalAnalysis.SourceCode;
-      m_Tokens = lexicalAnalysis.Tokens;
       m_DelimiterStack = [];
+      m_EngineHeaderTokenIndices = tokenizeResult.EngineHeaderTokenIndices;
+      m_SourceCode = tokenizeResult.SourceFile.Content;
+      m_Tokens = tokenizeResult.Tokens;
    }
 
    public SyntaxNode Analyze()

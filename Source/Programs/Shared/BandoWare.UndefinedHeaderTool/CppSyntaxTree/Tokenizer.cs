@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-internal class Tokenizer
+public class Tokenizer
 {
    private int EndOfFilePosition => m_SourceFileContent.Length;
    private bool IsEndOfFile => Position >= EndOfFilePosition;
@@ -200,7 +200,7 @@ internal class Tokenizer
       }
    }
 
-   public LexicalAnalysis Analyze()
+   public TokenizeResult Tokenize()
    {
       List<Token> tokens = new(20 / m_SourceFileContent.Length);
       List<int> engineHeaderTokenIndices = new(5);
@@ -372,16 +372,16 @@ internal class Tokenizer
       }
 
       AddToken(tokens, TokenType.EndOfFile, EndOfFilePosition, 0);
-      return new(tokens, engineHeaderTokenIndices, m_SourceFileContent);
+      return new(tokens, engineHeaderTokenIndices, m_SourceFile);
    }
 
-   private void AddToken(List<Token> tokens, TokenType type, int start, int length)
+   private void AddToken(List<Token> tokens, TokenType type, int position, int length)
    {
       tokens.Add(new
       (
          type: type,
-         startPosition: start,
-         contentView: m_SourceFileContentMemory.Slice(start, length),
+         contentPosition: position,
+         contentView: m_SourceFileContentMemory.Slice(position, length),
          index: tokens.Count
       ));
    }
@@ -485,7 +485,7 @@ internal class Tokenizer
    /// <param name="start">ContentPosition of the first quote.</param>
    /// <exception cref="IllFormedCodeException">Thrown when the syntax of the
    ///    raw string literal does not conform to C++ standards. This could be
-   ///    due to an incorrect start (missing opening quote), improper delimiter
+   ///    due to an incorrect position (missing opening quote), improper delimiter
    ///    usage, or if the raw string literal is not properly terminated before
    ///    the end of the file is reached.</exception>
    /// <remarks>
