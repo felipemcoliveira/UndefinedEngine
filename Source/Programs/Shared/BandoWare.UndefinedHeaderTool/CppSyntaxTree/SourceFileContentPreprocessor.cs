@@ -18,8 +18,8 @@ internal class SourceFileContentPreprocessor
 
    private readonly string m_RawFileContent;
    private readonly char[] m_FileContent;
-   private int m_ContentPosition;
    private int m_RawContentPosition;
+   private int m_ContentPosition;
    private int m_CurrentLine;
    private int m_CurrentLineStart;
    private readonly List<SourceFilePositionMapEntry> m_PositionMapEntries;
@@ -39,7 +39,7 @@ internal class SourceFileContentPreprocessor
       m_CurrentLine = 0;
       m_CurrentLineStart = 0;
       m_PositionMapEntries.Clear();
-      AddPositionMapEntry();
+      m_PositionMapEntries.Add(default);
 
       while (!IsEndOfFile)
       {
@@ -61,7 +61,7 @@ internal class SourceFileContentPreprocessor
                   break;
                }
 
-               m_ContentPosition++;
+               m_RawContentPosition++;
             }
 
             AddPositionMapEntry();
@@ -84,18 +84,18 @@ internal class SourceFileContentPreprocessor
                   continue;
                }
 
-               m_ContentPosition++;
+               m_RawContentPosition++;
             }
 
             if (!terminated)
             {
-               throw CreateIllFormedCodeException(m_ContentPosition, "Unterminated comment.");
+               throw CreateIllFormedCodeException(m_RawContentPosition, "Unterminated comment.");
             }
 
             AddPositionMapEntry();
 
             // multi line comment should be replace with a white space
-            m_FileContent[m_RawContentPosition++] = ' ';
+            m_FileContent[m_ContentPosition++] = ' ';
 
             continue;
          }
@@ -105,11 +105,11 @@ internal class SourceFileContentPreprocessor
             continue;
          }
 
-         m_FileContent[m_RawContentPosition++] = CurrentCharacter;
-         m_ContentPosition++;
+         m_FileContent[m_ContentPosition++] = CurrentCharacter;
+         m_RawContentPosition++;
       }
 
-      string fileContent = new(m_FileContent, 0, m_RawContentPosition);
+      string fileContent = new(m_FileContent, 0, m_ContentPosition);
       SourceFilePositionMap positionMap = new(m_PositionMapEntries);
       return new(m_RawFileContent, fileContent, positionMap);
    }
@@ -139,30 +139,30 @@ internal class SourceFileContentPreprocessor
    private void OnLineBreak()
    {
       m_CurrentLine++;
-      m_CurrentLineStart = m_ContentPosition;
+      m_CurrentLineStart = m_RawContentPosition;
       AddPositionMapEntry();
    }
 
    private void AddPositionMapEntry()
    {
-      int column = m_ContentPosition - m_CurrentLineStart;
-      if (m_PositionMapEntries[^1].ContentPosition == m_RawContentPosition)
+      int column = m_RawContentPosition - m_CurrentLineStart;
+      if (m_PositionMapEntries[^1].ContentPosition == m_ContentPosition)
       {
-         m_PositionMapEntries[^1] = new(m_RawContentPosition, m_ContentPosition, m_CurrentLine, column);
+         m_PositionMapEntries[^1] = new(m_ContentPosition, m_RawContentPosition, m_CurrentLine, column);
          return;
       }
 
-      m_PositionMapEntries.Add(new(m_RawContentPosition, m_ContentPosition, m_CurrentLine, column));
+      m_PositionMapEntries.Add(new(m_ContentPosition, m_RawContentPosition, m_CurrentLine, column));
    }
 
    private bool TryConsume(char c, ConsumeMode mode = ConsumeMode.Write)
    {
       if (!IsEndOfFile && CurrentCharacter == c)
       {
-         m_ContentPosition++;
+         m_RawContentPosition++;
          if (mode == ConsumeMode.Write)
          {
-            m_FileContent[m_RawContentPosition++] = c;
+            m_FileContent[m_ContentPosition++] = c;
          }
 
          return true;
@@ -173,19 +173,19 @@ internal class SourceFileContentPreprocessor
 
    private bool TryConsume(ReadOnlySpan<char> value, ConsumeMode mode = ConsumeMode.Write)
    {
-      int newPosition = m_ContentPosition;
-      while (!IsEndOfFile && m_FileContent[newPosition] == value[newPosition - m_ContentPosition])
+      int newPosition = m_RawContentPosition;
+      while (!IsEndOfFile && m_FileContent[newPosition] == value[newPosition - m_RawContentPosition])
       {
          newPosition++;
-         if (newPosition - m_ContentPosition == value.Length)
+         if (newPosition - m_RawContentPosition == value.Length)
          {
-            m_ContentPosition = newPosition;
+            m_RawContentPosition = newPosition;
 
             if (mode == ConsumeMode.Write)
             {
                for (int i = 0; i < value.Length; i++)
                {
-                  m_FileContent[m_RawContentPosition++] = value[i];
+                  m_FileContent[m_ContentPosition++] = value[i];
                }
             }
 

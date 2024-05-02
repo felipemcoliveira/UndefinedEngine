@@ -11,7 +11,7 @@ public class SourceFile
 
    private SourceFilePositionMap m_PositionMap;
 
-   internal SourceFile(string rawContent, string filePath)
+   public SourceFile(string rawContent, string filePath)
    {
       SourceFileContentPreprocessor preprocessor = new(rawContent);
       SourceFilePreprocessResult preprocessResult = preprocessor.Preprocess();
@@ -46,7 +46,7 @@ public enum SourceFilePositionType
    ContentPosition
 }
 
-public record struct SourceFilePosition(SourceFilePositionType Type, int Position);
+public record struct SourceFilePosition(SourceFilePositionType Type, int Value);
 
 public record struct SourceFilePositionMapEntry(int ContentPosition, int RawContentPosition, int RawLine, int RawColumn);
 
@@ -87,7 +87,8 @@ public class SourceFilePositionMap
          _ => throw new NotImplementedException(position.Type.ToString())
       };
 
-      int index = Array.BinarySearch(m_Entries, comparer);
+      SourceFilePositionMapEntry compareEntry = new(position.Value, position.Value, 0, 0);
+      int index = Array.BinarySearch(m_Entries, compareEntry, comparer);
       if (index < 0)
       {
          index = ~index - 1;

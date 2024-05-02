@@ -1,53 +1,52 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
     <TargetFramework>net8.0</TargetFramework>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <StartupObject></StartupObject>
-    <BaseIntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedCore</BaseIntermediateOutputPath>
-    <IntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedCore</IntermediateOutputPath>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <EngineBasePath>..\..\..\..\</EngineBasePath>
+    <ThirdPartyBinariesPath>$(EngineBasePath)Binaries\ThirdParty\</ThirdPartyBinariesPath>
+    <IntermediateOutputPath>$(EngineBasePath)Intermediate\DotNET\Shared\$(Configuration)\</IntermediateOutputPath>
+    <OutputPath>$(EngineBasePath)Binaries\DotNET\Shared\$(Configuration)\</OutputPath>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\..\Binaries\DotNET\UndefinedCore\Debug</OutputPath>
-    <IntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedCore\Debug</IntermediateOutputPath>
     <DefineConstants>DEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
+  
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <Optimize>true</Optimize>
-    <OutputPath>..\..\..\Binaries\DotNET\UndefinedCore</OutputPath>
-    <IntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedCore</IntermediateOutputPath>
     <DefineConstants>NDEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-  </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-  </ItemGroup>
+
   <ItemGroup>
-    <EmbeddedResource Remove="CppSyntaxTree\**" />
-    <EmbeddedResource Remove="obj\**" />
-    <None Remove="CppSyntaxTree\**" />
-    <None Remove="obj\**" />
-    <EmbeddedResource Remove="bin\**" />
-    <None Remove="bin\**" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(ThirdPartyBinariesPath)Newtonsoft\Json\Newtonsoft.Json.dll</HintPath>
+    </Reference>
   </ItemGroup>
+  
   <ItemGroup>
-    <Compile Include="Container\IContainer.cs" />
     <Compile Include="Types\Architecture.cs" />
+    <Compile Include="Types\Editor.cs" />
+    <Compile Include="Types\Platform.cs" />
+    <Compile Include="Types\StringView.cs" />
+    <Compile Include="Types\Version.cs" />
+    <Compile Include="Types\VisualStudioProductInfo.cs" />
+    <Compile Include="Utilities\PlatformUtility.cs" />
+    <Compile Include="Utilities\TypeUtility.cs" />
+    <Compile Include="Utilities\VisualStudioUtility.cs" />
     <Compile Include="Utilities\ArchitectureUtility.cs" />
     <Compile Include="CommandLineOptions\ArgumentParser.cs" />
     <Compile Include="CommandLineOptions\BooleanArgumentParser.cs" />
@@ -57,8 +56,6 @@
     <Compile Include="CommandLineOptions\NumberArgumentParser.cs" />
     <Compile Include="CommandLineOptions\CommandLineParseException.cs" />
     <Compile Include="CommandLineOptions\StringArgumentParser.cs" />
-    <Compile Include="Utilities\PlatformUtility.cs" />
-    <Compile Include="Types\Editor.cs" />
     <Compile Include="Logging\ILogger.cs" />
     <Compile Include="Logging\Log.cs" />
     <Compile Include="Logging\LogCallerInfo.cs" />
@@ -67,19 +64,12 @@
     <Compile Include="Logging\LogScope.cs" />
     <Compile Include="Logging\LogInterpolatedStringHandler.cs" />
     <Compile Include="Logging\LogServiceExtensionMethods.cs" />
-    <Compile Include="Types\Platform.cs" />
+    <Compile Include="Logging\ScopedLogger.cs" />
     <Compile Include="Container\Container.cs" />
     <Compile Include="Container\InjectAttribute.cs" />
-    <Compile Include="Logging\ScopedLogger.cs" />
-    <Compile Include="Types\StringView.cs" />
-    <Compile Include="Utilities\TypeUtility.cs" />
-    <Compile Include="Types\Version.cs" />
-    <Compile Include="Types\VisualStudioProductInfo.cs" />
-    <Compile Include="Utilities\VisualStudioUtility.cs" />
+    <Compile Include="Container\IContainer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\..\..\Binaries\ThirdParty\Newtonsoft\Json\Newtonsoft.Json.dll</HintPath>
-    </Reference>
+
   </ItemGroup>
 </Project>

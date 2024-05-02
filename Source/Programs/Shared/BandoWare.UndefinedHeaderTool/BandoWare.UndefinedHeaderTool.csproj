@@ -1,50 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
     <TargetFramework>net8.0</TargetFramework>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <StartupObject></StartupObject>
-    <BaseIntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedHeaderTool</BaseIntermediateOutputPath>
-    <IntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedHeaderTool</IntermediateOutputPath>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <EngineBasePath>..\..\..\..\</EngineBasePath>
+    <ThirdPartyBinariesPath>$(EngineBasePath)Binaries\ThirdParty\</ThirdPartyBinariesPath>
+    <IntermediateOutputPath>$(EngineBasePath)Intermediate\DotNET\Shared\$(Configuration)\</IntermediateOutputPath>
+    <OutputPath>$(EngineBasePath)Binaries\DotNET\Shared\$(Configuration)\</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\..\Binaries\DotNET\UndefinedHeaderTool\Debug</OutputPath>
-    <IntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedHeaderTool\Debug</IntermediateOutputPath>
     <DefineConstants>DEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <Optimize>true</Optimize>
-    <OutputPath>..\..\..\Binaries\DotNET\UndefinedHeaderTool</OutputPath>
-    <IntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedHeaderTool</IntermediateOutputPath>
     <DefineConstants>NDEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-  </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-  </ItemGroup>
+
   <ItemGroup>
-    <EmbeddedResource Remove="obj\**" />
-    <EmbeddedResource Remove="Premake\**" />
-    <None Remove="obj\**" />
-    <EmbeddedResource Remove="bin\**" />
-    <None Remove="bin\**" />
-    <None Remove="Premake\**" />
+    <ProjectReference Include="..\BandoWare.Core\BandoWare.Core.csproj" />
   </ItemGroup>
+
   <ItemGroup>
     <Compile Include="CppSyntaxTree\ClassNode.cs" />
     <Compile Include="CppSyntaxTree\HeaderNode.cs" />
@@ -55,17 +44,13 @@
     <Compile Include="CppSyntaxTree\HeaderSpecifierNode.cs" />
     <Compile Include="CppSyntaxTree\IllFormedCodeException.cs" />
     <Compile Include="CppSyntaxTree\LexicalAnalysis.cs" />
-    <Compile Include="CppSyntaxTree\LexicalAnalyzer.cs" />
     <Compile Include="CppSyntaxTree\LiteralNode.cs" />
-    <Compile Include="CppSyntaxTree\NumericLiteralLexicalAnalysis.cs" />
     <Compile Include="CppSyntaxTree\SourceFileContentPreprocessor.cs" />
     <Compile Include="CppSyntaxTree\SourceFile.cs" />
     <Compile Include="CppSyntaxTree\SyntacticAnalyzer.cs" />
     <Compile Include="CppSyntaxTree\SyntaxNode.cs" />
     <Compile Include="CppSyntaxTree\Token.cs" />
+    <Compile Include="CppSyntaxTree\Tokenizer.cs" />
     <Compile Include="CppSyntaxTree\TokenType.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\BandoWare.Core\BandoWare.Core.csproj" />
   </ItemGroup>
 </Project>

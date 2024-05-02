@@ -5,37 +5,34 @@
     <TargetFramework>net8.0</TargetFramework>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <Nullable>enable</Nullable>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <StartupObject></StartupObject>
     <BaseIntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedBuildTool</BaseIntermediateOutputPath>
     <IntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedBuildTool</IntermediateOutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <Optimize>false</Optimize>
     <OutputPath>..\..\..\Binaries\DotNET\UndefinedBuildTool\Debug</OutputPath>
     <IntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedBuildTool\Debug</IntermediateOutputPath>
     <DefineConstants>DEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <Optimize>true</Optimize>
     <OutputPath>..\..\..\Binaries\DotNET\UndefinedBuildTool</OutputPath>
     <IntermediateOutputPath>..\..\..\Intermediate\DotNET\UndefinedBuildTool</IntermediateOutputPath>
     <DefineConstants>NDEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+  <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
   </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Remove="CppSyntaxTree\**" />
@@ -59,5 +56,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Shared\BandoWare.Core\BandoWare.Core.csproj" />
+    <ProjectReference Include="..\Shared\BandoWare.UndefinedHeaderTool\BandoWare.UndefinedHeaderTool.csproj" />
   </ItemGroup>
 </Project>
