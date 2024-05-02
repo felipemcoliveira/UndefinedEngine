@@ -91,7 +91,7 @@ public struct StringView : IEquatable<StringView>, IComparable<StringView>
 
    public static implicit operator StringView(string value)
    {
-      return new StringView(value);
+      return new StringView(value.AsMemory());
    }
 
    public static implicit operator ReadOnlyMemory<char>(StringView view)
