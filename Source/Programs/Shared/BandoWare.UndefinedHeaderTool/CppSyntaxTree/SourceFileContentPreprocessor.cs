@@ -174,7 +174,7 @@ internal class SourceFileContentPreprocessor
    private bool TryConsume(ReadOnlySpan<char> value, ConsumeMode mode = ConsumeMode.Write)
    {
       int newPosition = m_RawContentPosition;
-      while (!IsEndOfFile && m_FileContent[newPosition] == value[newPosition - m_RawContentPosition])
+      while (!IsEndOfFile && m_RawFileContent[newPosition] == value[newPosition - m_RawContentPosition])
       {
          newPosition++;
          if (newPosition - m_RawContentPosition == value.Length)
