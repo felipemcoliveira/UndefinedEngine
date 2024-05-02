@@ -7,13 +7,13 @@ namespace BandoWare.Core;
 /// <summary>
 /// DI Container.
 /// </summary>
-public class Container
+public class Container : IContainer
 {
    readonly Dictionary<object, object> m_Values = [];
 
    public Container()
    {
-      Set<Container>(this);
+      Set<IContainer>(this);
    }
 
    public void Set<TKey>(object value)
@@ -143,8 +143,6 @@ public class Container
 
       return InjectFieldAndProperties(ctor.Invoke(parameterValues));
    }
-
-
 
    private object InjectFieldAndProperties(object instance)
    {
