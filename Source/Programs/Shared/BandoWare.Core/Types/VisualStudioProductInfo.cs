@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace BandoWare.Core;
 
-public partial class VisualStudioVersionJsonConverter : VersionJsonConverter
+internal partial class VisualStudioVersionJsonConverter : VersionJsonConverter
 {
    public override Regex VersionRegex => GetGeneratedRegex();
 
