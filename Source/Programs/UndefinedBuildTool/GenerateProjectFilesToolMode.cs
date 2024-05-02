@@ -1,7 +1,7 @@
-﻿using System;
-using UndefinedCore;
+﻿using BandoWare.Core;
+using System;
 
-namespace UndefinedBuildTool;
+namespace BandoWare.UndefinedBuildTool;
 
 [ToolMode("GenerateProjectFiles")]
 public class GenerateProjectFilesToolMode : ToolMode

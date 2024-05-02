@@ -1,8 +1,8 @@
-﻿using System;
+﻿using BandoWare.Core;
+using System;
 using System.IO;
-using UndefinedCore;
 
-namespace UndefinedBuildTool;
+namespace BandoWare.UndefinedBuildTool;
 
 [ToolMode("Build")]
 public class BuildToolMode : ToolMode
@@ -27,9 +27,7 @@ public class BuildToolMode : ToolMode
    public override void Execute()
    {
       if (!File.Exists(ProjectFilePath))
-      {
          throw new InvalidOperationException("Project file does not exist.");
-      }
 
       //if (!ProjectFilePath.EndsWith(".Build.cs"))
       //{
@@ -51,7 +49,7 @@ public class BuildToolMode : ToolMode
       {
          VisualStudioUtility.GetInstalledCompilerVersions(vsProductInfo);
 
-         foreach (UndefinedCore.Version compilerVersion in VisualStudioUtility.GetInstalledCompilerVersions(vsProductInfo))
+         foreach (Core.Version compilerVersion in VisualStudioUtility.GetInstalledCompilerVersions(vsProductInfo))
          {
             //string compilerPath = VisualStudioUtility.GetCompilerBinariesDirectory(vsProductInfo, compilerVersion);
             //Console.WriteLine(compilerPath);

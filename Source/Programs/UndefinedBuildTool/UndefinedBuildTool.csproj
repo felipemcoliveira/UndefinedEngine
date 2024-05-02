@@ -58,8 +58,7 @@
     <Compile Include="UndefinedBuildTool.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\UndefinedCore\UndefinedCore.csproj" />
-    <ProjectReference Include="..\UndefinedHeaderTool\UndefinedHeaderTool.csproj" />
+    <ProjectReference Include="..\Shared\BandoWare.Core\BandoWare.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json">

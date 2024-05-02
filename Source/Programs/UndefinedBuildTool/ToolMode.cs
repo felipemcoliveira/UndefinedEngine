@@ -1,4 +1,4 @@
-﻿namespace UndefinedBuildTool;
+﻿namespace BandoWare.UndefinedBuildTool;
 
 public abstract class ToolMode
 {

@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace UndefinedBuildTool;
+namespace BandoWare.UndefinedBuildTool
+   ;
 
 public static class ToolModeUtility
 {
@@ -17,9 +18,7 @@ public static class ToolModeUtility
       foreach ((Type type, ToolModeAttribute toolModeAttribute) in GetAllToolModeTypes())
       {
          if (toolModeAttribute.Name == name)
-         {
             return type;
-         }
       }
 
       return null;
@@ -30,9 +29,7 @@ public static class ToolModeUtility
       foreach (Type type in Assembly.GetExecutingAssembly().GetTypes())
       {
          if (type.GetCustomAttribute<ToolModeAttribute>() is ToolModeAttribute toolModeAttribute)
-         {
             yield return (type, toolModeAttribute);
-         }
       }
    }
 }

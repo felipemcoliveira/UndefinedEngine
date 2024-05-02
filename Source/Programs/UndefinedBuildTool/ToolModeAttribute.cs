@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace UndefinedBuildTool;
+namespace BandoWare.UndefinedBuildTool;
 
 [AttributeUsage(AttributeTargets.Class)]
 public class ToolModeAttribute : Attribute

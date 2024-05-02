@@ -1,5 +1,0 @@
-<Project>
-    <PropertyGroup>
-        <MSBUildProjectExtensionsPath>..\..\..\Intermediate\DotNET\UndefinedCore</MSBUildProjectExtensionsPath>
-    </PropertyGroup>
-</Project>

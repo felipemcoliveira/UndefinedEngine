@@ -1,6 +1,6 @@
-﻿using UndefinedCore;
+﻿using BandoWare.Core;
 
-namespace UndefinedBuildTool;
+namespace BandoWare.UndefinedBuildTool;
 
 public class ToolModeOptions
 {

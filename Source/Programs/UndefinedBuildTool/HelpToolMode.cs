@@ -1,10 +1,10 @@
-﻿using System;
+﻿using BandoWare.Core;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using UndefinedCore;
 
-namespace UndefinedBuildTool;
+namespace BandoWare.UndefinedBuildTool;
 
 [ToolMode("Help")]
 public class HelpToolMode(CommandLineArguments commandLineArguments) : ToolMode
@@ -48,9 +48,7 @@ public class HelpToolMode(CommandLineArguments commandLineArguments) : ToolMode
       if (valueUsage[0] == '$')
       {
          if (valueUsage == "$EnumValues")
-         {
             return FormatEnumValues(argumentTarget);
-         }
          else if (valueUsage.StartsWith("$StaticField:"))
          {
             return FormatStaticFieldOptions(argumentTarget, valueUsage);
@@ -69,14 +67,10 @@ public class HelpToolMode(CommandLineArguments commandLineArguments) : ToolMode
       Type type = argumentTarget.MemberInfo.DeclaringType!;
       FieldInfo? field = type.GetField(fieldName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
       if (field == null)
-      {
          throw new InvalidOperationException($"Failed to find static field {fieldName} in type {type.Name}");
-      }
 
       if (field.FieldType != typeof(string[]))
-      {
          throw new InvalidOperationException($"Static field {fieldName} in type {type} is not an array of string.");
-      }
 
       string[] values = (string[])field.GetValue(null)!;
       return $"<{string.Join(" | ", values.Select(v => $"\"{v}\""))}>";

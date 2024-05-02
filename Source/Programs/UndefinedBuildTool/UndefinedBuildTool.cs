@@ -1,7 +1,7 @@
-﻿using System;
-using UndefinedCore;
+﻿using BandoWare.Core;
+using System;
 
-namespace UndefinedBuildTool;
+namespace BandoWare.UndefinedBuildTool;
 
 internal class UndefinedBuildTool
 {
