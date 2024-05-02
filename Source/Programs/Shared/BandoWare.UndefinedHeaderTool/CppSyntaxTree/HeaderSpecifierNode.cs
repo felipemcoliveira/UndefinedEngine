@@ -2,7 +2,7 @@ using BandoWare.Core;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-public class CppHeaderSpecifierNode(StringView name) : CppSyntaxNode
+public class HeaderSpecifierNode(StringView name) : SyntaxNode
 {
    public StringView Name { get; } = name;
 }

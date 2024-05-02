@@ -3,12 +3,7 @@
 namespace BandoWare.UndefinedBuildTool;
 
 [AttributeUsage(AttributeTargets.Class)]
-public class ToolModeAttribute : Attribute
+public class ToolModeAttribute(string name) : Attribute
 {
-   public string Name { get; }
-
-   public ToolModeAttribute(string name)
-   {
-      Name = name;
-   }
+   public string Name { get; } = name;
 }

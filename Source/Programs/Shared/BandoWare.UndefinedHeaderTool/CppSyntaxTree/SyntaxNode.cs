@@ -6,16 +6,16 @@ using System.Linq;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-public class CppSyntaxNode : IEnumerable<CppSyntaxNode>
+public class SyntaxNode : IEnumerable<SyntaxNode>
 {
-   public CppSyntaxNode? Parent { get; private set; }
+   public SyntaxNode? Parent { get; private set; }
 
-   private List<CppSyntaxNode>? m_Children;
+   private List<SyntaxNode>? m_Children;
 
-   public IEnumerator<CppSyntaxNode> GetEnumerator()
+   public IEnumerator<SyntaxNode> GetEnumerator()
    {
       if (m_Children == null)
-         return Enumerable.Empty<CppSyntaxNode>().GetEnumerator();
+         return Enumerable.Empty<SyntaxNode>().GetEnumerator();
 
       return m_Children.GetEnumerator();
    }
@@ -25,9 +25,9 @@ public class CppSyntaxNode : IEnumerable<CppSyntaxNode>
       return GetEnumerator();
    }
 
-   public bool TryGetChildOfType<T>([NotNullWhen(true)] out T? child) where T : CppSyntaxNode
+   public bool TryGetChildOfType<T>([NotNullWhen(true)] out T? child) where T : SyntaxNode
    {
-      foreach (CppSyntaxNode node in this)
+      foreach (SyntaxNode node in this)
       {
          if (node is T t)
          {
@@ -40,7 +40,7 @@ public class CppSyntaxNode : IEnumerable<CppSyntaxNode>
       return false;
    }
 
-   public IEnumerable<T> GetChildrenOfType<T>() where T : CppSyntaxNode
+   public IEnumerable<T> GetChildrenOfType<T>() where T : SyntaxNode
    {
       if (m_Children == null)
          return Enumerable.Empty<T>();
@@ -48,18 +48,18 @@ public class CppSyntaxNode : IEnumerable<CppSyntaxNode>
       return m_Children.Where(n => n is T).Cast<T>();
    }
 
-   public void AddChildren(IEnumerable<CppSyntaxNode>? nodes)
+   public void AddChildren(IEnumerable<SyntaxNode>? nodes)
    {
       if (nodes == null)
          return;
 
-      foreach (CppSyntaxNode node in nodes)
+      foreach (SyntaxNode node in nodes)
       {
          AddChild(node);
       }
    }
 
-   public void AddChild(CppSyntaxNode? node)
+   public void AddChild(SyntaxNode? node)
    {
       if (node == null)
          return;

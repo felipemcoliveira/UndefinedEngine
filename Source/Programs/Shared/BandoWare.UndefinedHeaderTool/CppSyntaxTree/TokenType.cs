@@ -1,6 +1,6 @@
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-public enum CppTokenType
+public enum TokenType
 {
    Unknown = 0,
    Identifier = 1 << 0,

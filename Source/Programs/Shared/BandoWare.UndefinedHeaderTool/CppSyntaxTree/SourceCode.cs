@@ -3,17 +3,17 @@ using System.Collections.Generic;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-public class CppSourceCode
+public class SourceCode
 {
-   public string SourceCode { get; }
+   public string Content { get; }
    public string FilePath { get; }
 
-   private readonly List<CppSouceCodeRange> m_Ranges;
+   private readonly List<SouceCodeRange> m_Ranges;
    private int[]? m_RangeStartPositions;
 
-   internal CppSourceCode(string sourceCode, string filePath, List<CppSouceCodeRange> ranges)
+   internal SourceCode(string content, string filePath, List<SouceCodeRange> ranges)
    {
-      SourceCode = sourceCode;
+      Content = content;
       FilePath = filePath;
       m_Ranges = ranges;
    }
@@ -40,7 +40,7 @@ public class CppSourceCode
          index = m_Ranges.Count - 1;
       }
 
-      CppSouceCodeRange range = m_Ranges[index];
+      SouceCodeRange range = m_Ranges[index];
       return (range.Column, range.Column + (position - range.StartPosition));
    }
 }

@@ -3,8 +3,8 @@ using System.Diagnostics;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-[DebuggerDisplay("UENUM Item {Name,nq}")]
-public class CppEnumItemNode(StringView name) : CppSyntaxNode
+[DebuggerDisplay("UCLASS {Name,nq}")]
+public class ClassNode(StringView name) : SyntaxNode
 {
    public StringView Name { get; private set; } = name;
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-public class CppPreprocessor
+public class SourceCodePreprocessor
 {
    private bool IsEndOfFile => m_ReadPosition >= m_SourceCode.Length;
    private char CurrentCharacter => m_SourceCode[m_ReadPosition];
@@ -14,16 +14,16 @@ public class CppPreprocessor
    private int m_WritePosition;
    private int m_CurrentLine;
    private int m_CurrentLineStart;
-   private readonly List<CppSouceCodeRange> m_Ranges;
+   private readonly List<SouceCodeRange> m_Ranges;
 
-   public CppPreprocessor(string rawSourceCode, string filePath)
+   public SourceCodePreprocessor(string rawSourceCode, string filePath)
    {
       m_SourceCode = rawSourceCode.ToCharArray();
       m_FilePath = filePath;
       m_Ranges = new(128);
    }
 
-   public CppSourceCode Preprocess()
+   public SourceCode Preprocess()
    {
       m_CurrentLine = 1;
       m_CurrentLineStart = 0;
@@ -72,7 +72,7 @@ public class CppPreprocessor
             }
 
             if (IsEndOfFile)
-               throw new CppIllFormedCodeException(m_ReadPosition, "Unterminated comment.");
+               throw new IllFormedCodeException(m_ReadPosition, "Unterminated comment.");
 
             continue;
          }
@@ -98,7 +98,7 @@ public class CppPreprocessor
       }
 
       string sourceCode = new(m_SourceCode, 0, m_WritePosition);
-      return new CppSourceCode(sourceCode, m_FilePath, m_Ranges);
+      return new SourceCode(sourceCode, m_FilePath, m_Ranges);
    }
 
    private bool TryConsumeLineSplicingReadOnly()
@@ -114,7 +114,7 @@ public class CppPreprocessor
 
    private void AddRangeEntry()
    {
-      CppSouceCodeRange range = new(m_WritePosition, m_CurrentLine, m_ReadPosition - m_CurrentLineStart + 1);
+      SouceCodeRange range = new(m_WritePosition, m_CurrentLine, m_ReadPosition - m_CurrentLineStart + 1);
       if (m_Ranges[^1].StartPosition == range.StartPosition)
       {
          m_Ranges[^1] = range;

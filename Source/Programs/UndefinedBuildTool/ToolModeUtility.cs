@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace BandoWare.UndefinedBuildTool
-   ;
+namespace BandoWare.UndefinedBuildTool;
 
 public static class ToolModeUtility
 {

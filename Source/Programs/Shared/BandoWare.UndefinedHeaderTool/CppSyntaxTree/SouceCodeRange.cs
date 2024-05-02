@@ -1,6 +1,6 @@
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-public readonly struct CppSouceCodeRange(int startPosition, int line, int column)
+public readonly struct SouceCodeRange(int startPosition, int line, int column)
 {
    public int StartPosition { get; } = startPosition;
    public int Line { get; } = line;

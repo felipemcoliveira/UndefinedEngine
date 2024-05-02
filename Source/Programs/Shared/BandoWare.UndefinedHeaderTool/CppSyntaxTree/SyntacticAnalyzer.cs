@@ -7,11 +7,11 @@ using System.Text.RegularExpressions;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-internal partial class CppSyntacticAnalyzer
+internal class SyntacticAnalyzer
 {
-   private CppToken CurrentToken => m_Tokens[m_Position];
-   private CppTokenType CurrentTokenType => CurrentToken.Type;
-   private bool IsEndOfFile => CurrentToken.Type == CppTokenType.EndOfFile;
+   private Token CurrentToken => m_Tokens[m_Position];
+   private TokenType CurrentTokenType => CurrentToken.Type;
+   private bool IsEndOfFile => CurrentToken.Type == TokenType.EndOfFile;
    private StringView CurrentTokenValue => CurrentToken.ValueView;
    private int CurrentTokenPosition => CurrentToken.StartPosition;
 
@@ -82,15 +82,15 @@ internal partial class CppSyntacticAnalyzer
       "[]"
    ];
 
-   private readonly CppLexicalAnalysis m_LexicalAnalysis;
+   private readonly LexicalAnalysis m_LexicalAnalysis;
    private int m_Position;
    private Stack<char> m_DelimiterStack;
 
    // copied from lexical analysis for faster access
    private string m_SourceCode;
-   private List<CppToken> m_Tokens;
+   private List<Token> m_Tokens;
 
-   public CppSyntacticAnalyzer(CppLexicalAnalysis lexicalAnalysis)
+   public SyntacticAnalyzer(LexicalAnalysis lexicalAnalysis)
    {
       m_LexicalAnalysis = lexicalAnalysis;
       m_Position = 0;
@@ -99,14 +99,14 @@ internal partial class CppSyntacticAnalyzer
       m_DelimiterStack = [];
    }
 
-   public CppSyntaxNode Analyze()
+   public SyntaxNode Analyze()
    {
-      CppSyntaxNode root = new();
+      SyntaxNode root = new();
 
       SkipUntilNextEngineHeader();
       while (!IsEndOfFile)
       {
-         if (AcceptDeclaration(out CppSyntaxNode? node))
+         if (AcceptDeclaration(out SyntaxNode? node))
          {
             root.AddChild(node);
             continue;
@@ -118,9 +118,9 @@ internal partial class CppSyntacticAnalyzer
       return root;
    }
 
-   public bool AcceptDeclaration(out CppSyntaxNode? node)
+   public bool AcceptDeclaration(out SyntaxNode? node)
    {
-      if (IsEndOfFile || CurrentTokenType != CppTokenType.EngineHeader)
+      if (IsEndOfFile || CurrentTokenType != TokenType.EngineHeader)
       {
          node = null;
          return false;
@@ -129,10 +129,10 @@ internal partial class CppSyntacticAnalyzer
       return AcceptClassDeclaration(out node) || AcceptEnumDeclaration(out node);
    }
 
-   private bool AcceptClassDeclaration(out CppSyntaxNode? node)
+   private bool AcceptClassDeclaration(out SyntaxNode? node)
    {
       int firstNodeIndex = m_Position;
-      if (!TryAcceptEngineHeadear("UCLASS", out CppEngineHeaderNode? engineHeaderNode))
+      if (!TryAcceptEngineHeadear("UCLASS", out HeaderNode? engineHeaderNode))
       {
          node = null;
          return false;
@@ -140,7 +140,7 @@ internal partial class CppSyntacticAnalyzer
 
       if (!AcceptKeyword("class"))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, "Expected \"class\" keyword.");
+         throw new IllFormedCodeException(CurrentTokenPosition, "Expected \"class\" keyword.");
       }
 
       bool hasImportExportAttribute = AcceptImportExportClassAttribute();
@@ -148,36 +148,36 @@ internal partial class CppSyntacticAnalyzer
       StringView classIdentifier = CurrentTokenValue;
       if (hasImportExportAttribute)
       {
-         ExpectFormat(CppTokenType.Identifier, "Expected identifier after \"{0}\" keyword.", m_Tokens[m_Position - 1].ValueView);
+         ExpectFormat(TokenType.Identifier, "Expected identifier after \"{0}\" keyword.", m_Tokens[m_Position - 1].ValueView);
       }
       else
       {
-         Expect(CppTokenType.Identifier, "Expected identifier after \"class\" keyword.");
+         Expect(TokenType.Identifier, "Expected identifier after \"class\" keyword.");
       }
 
       // base class
-      if (AcceptExact(CppTokenType.Symbol, ":"))
+      if (AcceptExact(TokenType.Symbol, ":"))
       {
          // TODO: parse base classes
          SkipUntil("{;", "{(<", ">)}");
       }
 
       // forward declaration
-      if (AcceptExact(CppTokenType.Symbol, ";"))
+      if (AcceptExact(TokenType.Symbol, ";"))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, "UCLASS should be used only with class definition.");
+         throw new IllFormedCodeException(CurrentTokenPosition, "UCLASS should be used only with class definition.");
       }
 
-      CppClassNode classNode = new(CurrentTokenValue);
+      ClassNode classNode = new(CurrentTokenValue);
       classNode.AddChild(engineHeaderNode);
 
-      ExpectExact(CppTokenType.Symbol, "{", "Expected \"{\" after class declaration");
+      ExpectExact(TokenType.Symbol, "{", "Expected \"{\" after class declaration");
       ExpectGeneratedBodyMacro();
 
       int curlyBraceCount = 0;
       while (!IsEndOfFile)
       {
-         if (AcceptClassMemberDeclaration(out CppSyntaxNode? classMemberNode))
+         if (AcceptClassMemberDeclaration(out SyntaxNode? classMemberNode))
          {
             classNode.AddChild(classMemberNode);
             continue;
@@ -188,12 +188,12 @@ internal partial class CppSyntacticAnalyzer
             continue;
          }
 
-         if (AcceptExact(CppTokenType.Symbol, "}"))
+         if (AcceptExact(TokenType.Symbol, "}"))
          {
             curlyBraceCount--;
             if (curlyBraceCount == 0)
             {
-               ExpectExact(CppTokenType.Symbol, ";", "Expected \";\" after class declaration");
+               ExpectExact(TokenType.Symbol, ";", "Expected \";\" after class declaration");
                break;
             }
          }
@@ -207,18 +207,18 @@ internal partial class CppSyntacticAnalyzer
 
    private void ExpectGeneratedBodyMacro()
    {
-      if (!AcceptExact(CppTokenType.Identifier, "GENERATED_BODY")
-         || !AcceptExact(CppTokenType.Symbol, "(")
-         || !AcceptExact(CppTokenType.Symbol, ")"))
+      if (!AcceptExact(TokenType.Identifier, "GENERATED_BODY")
+         || !AcceptExact(TokenType.Symbol, "(")
+         || !AcceptExact(TokenType.Symbol, ")"))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, "Expected GENERATED_BODY(). " +
+         throw new IllFormedCodeException(CurrentTokenPosition, "Expected GENERATED_BODY(). " +
             "It should be the first thing in the class body, even before access specifiers).");
       }
    }
 
-   private bool AcceptClassMemberDeclaration(out CppSyntaxNode? node)
+   private bool AcceptClassMemberDeclaration(out SyntaxNode? node)
    {
-      if (IsEndOfFile || CurrentTokenType != CppTokenType.EngineHeader)
+      if (IsEndOfFile || CurrentTokenType != TokenType.EngineHeader)
       {
          node = null;
          return false;
@@ -227,10 +227,10 @@ internal partial class CppSyntacticAnalyzer
       return AcceptFunctionDeclaration(out node);
    }
 
-   private bool AcceptFunctionDeclaration(out CppSyntaxNode? node)
+   private bool AcceptFunctionDeclaration(out SyntaxNode? node)
    {
       int firstNodeIndex = m_Position;
-      if (!TryAcceptEngineHeadear("UFUNCTION", out CppEngineHeaderNode? engineHeaderNode))
+      if (!TryAcceptEngineHeadear("UFUNCTION", out HeaderNode? engineHeaderNode))
       {
          node = null;
          return false;
@@ -239,7 +239,7 @@ internal partial class CppSyntacticAnalyzer
       HashSet<StringView> functionSpecifiers = [];
       while (!IsEndOfFile)
       {
-         if (!AcceptAny(CppTokenType.Keyword, s_FunctionSpecifiers, out StringView specifier))
+         if (!AcceptAny(TokenType.Keyword, s_FunctionSpecifiers, out StringView specifier))
          {
             break;
          }
@@ -249,40 +249,40 @@ internal partial class CppSyntacticAnalyzer
 
       SkipUntil("(", "{(<", ">)}");
       int identifierTokenIndex = m_Position - 1;
-      if (!IsEndOfFile && m_Tokens[identifierTokenIndex].Type != CppTokenType.Identifier)
+      if (!IsEndOfFile && m_Tokens[identifierTokenIndex].Type != TokenType.Identifier)
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, "Expected function name.");
+         throw new IllFormedCodeException(CurrentTokenPosition, "Expected function name.");
       }
 
       StringView functionIdentifier = CurrentTokenValue;
-      CppFunctionNode functionNode = new(functionIdentifier);
+      FunctionNode functionNode = new(functionIdentifier);
 
       functionNode.AddChild(engineHeaderNode);
       functionNode.IsVirtual = functionSpecifiers.Contains("virtual");
       functionNode.IsStatic = functionSpecifiers.Contains("static");
       functionNode.IsConstExpr = functionSpecifiers.Contains("constexpr");
 
-      ExpectExact(CppTokenType.Symbol, "(", "Expected \"(\" after function name.");
+      ExpectExact(TokenType.Symbol, "(", "Expected \"(\" after function name.");
 
-      foreach (CppFunctionParameterNode parameter in ConsumeFunctionParameters())
+      foreach (FunctionParameterNode parameter in ConsumeFunctionParameters())
       {
          functionNode.AddChild(parameter);
       }
 
-      ExpectExact(CppTokenType.Symbol, ")", "Expected \")\" after parameters list.");
+      ExpectExact(TokenType.Symbol, ")", "Expected \")\" after parameters list.");
 
       SkipUntil("{;", "{(<", ">)}");
 
-      if (!TrySkipDelimiters('{', '}') && !AcceptExact(CppTokenType.Symbol, ";"))
+      if (!TrySkipDelimiters('{', '}') && !AcceptExact(TokenType.Symbol, ";"))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, "Expected \";\" or function body after function declaration.");
+         throw new IllFormedCodeException(CurrentTokenPosition, "Expected \";\" or function body after function declaration.");
       }
 
       node = functionNode;
       return true;
    }
 
-   private IEnumerable<CppFunctionParameterNode> ConsumeFunctionParameters()
+   private IEnumerable<FunctionParameterNode> ConsumeFunctionParameters()
    {
       if (AcceptKeyword("void"))
       {
@@ -295,7 +295,7 @@ internal partial class CppSyntacticAnalyzer
       }
    }
 
-   private bool AcceptAny(CppTokenType validTokenTypes, HashSet<StringView> set, out StringView acceptedValue)
+   private bool AcceptAny(TokenType validTokenTypes, HashSet<StringView> set, out StringView acceptedValue)
    {
       if (IsEndOfFile || (CurrentTokenType & validTokenTypes) == 0 || !set.Contains(CurrentTokenValue))
       {
@@ -323,7 +323,7 @@ internal partial class CppSyntacticAnalyzer
 
    private bool AcceptExportImportClassAttribute()
    {
-      if (!IsEndOfFile || CurrentToken.Type != CppTokenType.Identifier)
+      if (!IsEndOfFile || CurrentToken.Type != TokenType.Identifier)
       {
          return false;
       }
@@ -333,10 +333,10 @@ internal partial class CppSyntacticAnalyzer
       return false;
    }
 
-   private bool AcceptEnumDeclaration(out CppSyntaxNode? node)
+   private bool AcceptEnumDeclaration(out SyntaxNode? node)
    {
       int firstNodeIndex = m_Position;
-      if (!TryAcceptEngineHeadear("UENUM", out CppEngineHeaderNode? engineHeaderNode))
+      if (!TryAcceptEngineHeadear("UENUM", out HeaderNode? engineHeaderNode))
       {
          node = null;
          return false;
@@ -344,67 +344,67 @@ internal partial class CppSyntacticAnalyzer
 
       if (!AcceptKeyword("enum"))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, "Expected \"enum\" keyword.");
+         throw new IllFormedCodeException(CurrentTokenPosition, "Expected \"enum\" keyword.");
       }
 
       _ = AcceptKeyword("class") || AcceptKeyword("struct");
 
-      Expect(CppTokenType.Identifier, out StringView identifier, "Expected identifier after \"enum\" keyword.");
-      CppEnumNode enumNode = new(identifier);
+      Expect(TokenType.Identifier, out StringView identifier, "Expected identifier after \"enum\" keyword.");
+      EnumNode enumNode = new(identifier);
 
       // type identifier
-      if (AcceptExact(CppTokenType.Symbol, ":"))
+      if (AcceptExact(TokenType.Symbol, ":"))
       {
          SkipUntil("{;", "{(<", ">)}");
       }
 
       // forward declaration
-      if (AcceptExact(CppTokenType.Symbol, ";"))
+      if (AcceptExact(TokenType.Symbol, ";"))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, "UENUM should be used only with enum definition.");
+         throw new IllFormedCodeException(CurrentTokenPosition, "UENUM should be used only with enum definition.");
       }
 
       enumNode.AddChild(engineHeaderNode);
 
-      ExpectExact(CppTokenType.Symbol, "{", "Expected \"{\" after enum declaration.");
+      ExpectExact(TokenType.Symbol, "{", "Expected \"{\" after enum declaration.");
 
       while (!IsEndOfFile)
       {
-         if (TryAcceptEnumItem(out CppSyntaxNode? enumItemNode))
+         if (TryAcceptEnumItem(out SyntaxNode? enumItemNode))
          {
             enumNode.AddChild(enumItemNode);
             continue;
          }
 
-         if (AcceptExact(CppTokenType.Symbol, ","))
+         if (AcceptExact(TokenType.Symbol, ","))
          {
             continue;
          }
 
-         if (AcceptExact(CppTokenType.Symbol, "}"))
+         if (AcceptExact(TokenType.Symbol, "}"))
          {
             break;
          }
 
-         throw new CppIllFormedCodeException(CurrentTokenPosition, "Unexpected token.");
+         throw new IllFormedCodeException(CurrentTokenPosition, "Unexpected token.");
       }
 
-      ExpectExact(CppTokenType.Symbol, ";", "Expected \";\" after enum declaration.");
+      ExpectExact(TokenType.Symbol, ";", "Expected \";\" after enum declaration.");
 
       node = enumNode;
       return true;
    }
 
-   private bool TryAcceptEnumItem(out CppSyntaxNode? node)
+   private bool TryAcceptEnumItem(out SyntaxNode? node)
    {
       int startTokenIndex = m_Position;
-      bool hasEngineHeader = TryAcceptEngineHeadear("UMETA", out CppEngineHeaderNode? engineHeaderNode);
+      bool hasEngineHeader = TryAcceptEngineHeadear("UMETA", out HeaderNode? engineHeaderNode);
 
-      if (!Accept(CppTokenType.Identifier, out StringView identifier))
+      if (!Accept(TokenType.Identifier, out StringView identifier))
       {
          if (hasEngineHeader)
          {
-            throw new CppIllFormedCodeException(CurrentTokenPosition, "Expected identifier after UMETA header.");
+            throw new IllFormedCodeException(CurrentTokenPosition, "Expected identifier after UMETA header.");
          }
 
          m_Position = startTokenIndex;
@@ -412,10 +412,10 @@ internal partial class CppSyntacticAnalyzer
          return false;
       }
 
-      CppEnumItemNode enumItemNode = new(identifier);
+      EnumItemNode enumItemNode = new(identifier);
       enumItemNode.AddChild(engineHeaderNode);
 
-      if (AcceptExact(CppTokenType.Symbol, "="))
+      if (AcceptExact(TokenType.Symbol, "="))
       {
          SkipUntil(",}", "{(<", ">)}");
       }
@@ -427,59 +427,59 @@ internal partial class CppSyntacticAnalyzer
    private bool TryAcceptEngineHeadear
    (
       string headerName,
-      [NotNullWhen(true)] out CppEngineHeaderNode? headerNode
+      [NotNullWhen(true)] out HeaderNode? headerNode
    )
    {
-      if (!AcceptExact(CppTokenType.EngineHeader, headerName))
+      if (!AcceptExact(TokenType.EngineHeader, headerName))
       {
          headerNode = null;
          return false;
       }
 
       headerNode = new(headerName);
-      ExpectExact(CppTokenType.Symbol, "(", $"Expected \"(\" after \"{headerName}\".");
+      ExpectExact(TokenType.Symbol, "(", $"Expected \"(\" after \"{headerName}\".");
 
       while (!IsEndOfFile)
       {
-         if (AcceptHeaderSpecifier(out CppHeaderSpecifierNode? specifierNode))
+         if (AcceptHeaderSpecifier(out HeaderSpecifierNode? specifierNode))
          {
             headerNode.AddChild(specifierNode);
             continue;
          }
 
-         if (AcceptExact(CppTokenType.Symbol, ","))
+         if (AcceptExact(TokenType.Symbol, ","))
          {
             continue;
          }
 
-         if (AcceptExact(CppTokenType.Symbol, ")"))
+         if (AcceptExact(TokenType.Symbol, ")"))
          {
             break;
          }
 
-         throw new CppIllFormedCodeException(CurrentTokenPosition, $"Unexpected character \"{CurrentTokenValue}\".");
+         throw new IllFormedCodeException(CurrentTokenPosition, $"Unexpected character \"{CurrentTokenValue}\".");
       }
 
       return true;
    }
 
-   private bool AcceptHeaderSpecifier(out CppHeaderSpecifierNode? specifierNode)
+   private bool AcceptHeaderSpecifier(out HeaderSpecifierNode? specifierNode)
    {
-      if (IsEndOfFile || Accept(CppTokenType.Identifier, out StringView specifierName))
+      if (IsEndOfFile || Accept(TokenType.Identifier, out StringView specifierName))
       {
          specifierNode = null;
          return false;
       }
 
-      specifierNode = new CppHeaderSpecifierNode(specifierName);
-      if (!AcceptExact(CppTokenType.Symbol, "="))
+      specifierNode = new HeaderSpecifierNode(specifierName);
+      if (!AcceptExact(TokenType.Symbol, "="))
       {
          return true;
       }
 
       if (!AcceptLiteral(out CppLiteralNode? literalNode))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, "Expected literal after \"=\".");
+         throw new IllFormedCodeException(CurrentTokenPosition, "Expected literal after \"=\".");
       }
 
       specifierNode.AddChild(literalNode);
@@ -501,7 +501,7 @@ internal partial class CppSyntacticAnalyzer
    /// </summary>
    private bool AcceptBooleanLiteral([NotNullWhen(true)] out CppLiteralNode? node)
    {
-      if (!Accept(CppTokenType.BooleanLiteral, out StringView booleanLiteral))
+      if (!Accept(TokenType.BooleanLiteral, out StringView booleanLiteral))
       {
          node = null;
          return false;
@@ -509,7 +509,7 @@ internal partial class CppSyntacticAnalyzer
 
       bool isTrue = booleanLiteral == "true";
 
-      node = new CppLiteralNode<bool>(isTrue);
+      node = new LiteralNode<bool>(isTrue);
       return false;
    }
 
@@ -520,7 +520,7 @@ internal partial class CppSyntacticAnalyzer
    /// </summary>
    private bool AcceptIntegerLiteral([NotNullWhen(true)] out CppLiteralNode? node)
    {
-      if (!Accept(CppTokenType.NumericLiteral, out StringView integerLiteral))
+      if (!Accept(TokenType.NumericLiteral, out StringView integerLiteral))
       {
          node = null;
          return false;
@@ -528,11 +528,11 @@ internal partial class CppSyntacticAnalyzer
 
       if (!long.TryParse(integerLiteral.Span, out long value))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition,
+         throw new IllFormedCodeException(CurrentTokenPosition,
             "Invalid integer literal. Integer literals are limited to what C# can parse.");
       }
 
-      node = new CppLiteralNode<long>(value);
+      node = new LiteralNode<long>(value);
       return true;
    }
 
@@ -542,7 +542,7 @@ internal partial class CppSyntacticAnalyzer
    /// </summary>
    private bool AcceptStringLiteral([NotNullWhen(true)] out CppLiteralNode? node)
    {
-      if (!Accept(CppTokenType.StringLiteral, out StringView stringLiteral))
+      if (!Accept(TokenType.StringLiteral, out StringView stringLiteral))
       {
          node = null;
          return false;
@@ -550,13 +550,13 @@ internal partial class CppSyntacticAnalyzer
 
       if (stringLiteral.Length < 2 || stringLiteral[0] != '"' || stringLiteral[^1] != '"')
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition,
+         throw new IllFormedCodeException(CurrentTokenPosition,
             "Invalid string literal. Don't use prefixes or suffixes.");
       }
 
 
       string str = Regex.Unescape(stringLiteral);
-      node = new CppLiteralNode<string>(str);
+      node = new LiteralNode<string>(str);
       return true;
    }
 
@@ -565,12 +565,12 @@ internal partial class CppSyntacticAnalyzer
       int count = 1;
       while (!IsEndOfFile)
       {
-         if (AcceptExact(CppTokenType.Symbol, openDelimiter))
+         if (AcceptExact(TokenType.Symbol, openDelimiter))
          {
             count++;
          }
 
-         if (AcceptExact(CppTokenType.Symbol, closeDelimiter))
+         if (AcceptExact(TokenType.Symbol, closeDelimiter))
          {
             count--;
             if (count == 0)
@@ -584,7 +584,7 @@ internal partial class CppSyntacticAnalyzer
 
       if (IsEndOfFile)
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, $"Expected \"{closeDelimiter}\".");
+         throw new IllFormedCodeException(CurrentTokenPosition, $"Expected \"{closeDelimiter}\".");
       }
    }
 
@@ -595,7 +595,7 @@ internal partial class CppSyntacticAnalyzer
 
       while (!IsEndOfFile)
       {
-         if (m_DelimiterStack.Count == 0 && CurrentToken.Type == CppTokenType.EngineHeader)
+         if (m_DelimiterStack.Count == 0 && CurrentToken.Type == TokenType.EngineHeader)
          {
             return;
          }
@@ -627,7 +627,7 @@ internal partial class CppSyntacticAnalyzer
 
       if (m_DelimiterStack.Count > 0)
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, $"Expected \"{m_DelimiterStack.Peek()}\".");
+         throw new IllFormedCodeException(CurrentTokenPosition, $"Expected \"{m_DelimiterStack.Peek()}\".");
       }
    }
 
@@ -672,7 +672,7 @@ internal partial class CppSyntacticAnalyzer
 
       if (m_DelimiterStack.Count > 0)
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, $"Expected \"{m_DelimiterStack.Peek()}\".");
+         throw new IllFormedCodeException(CurrentTokenPosition, $"Expected \"{m_DelimiterStack.Peek()}\".");
       }
    }
 
@@ -688,7 +688,7 @@ internal partial class CppSyntacticAnalyzer
          bool isOpenDelimiter = false;
          for (int i = 0; i < openDelimiters.Length; i++)
          {
-            if (AcceptExact(CppTokenType.Symbol, openDelimiters[i]))
+            if (AcceptExact(TokenType.Symbol, openDelimiters[i]))
             {
                isOpenDelimiter = true;
                m_DelimiterStack.Push(closeDelimiters[i]);
@@ -696,7 +696,7 @@ internal partial class CppSyntacticAnalyzer
             }
          }
 
-         if (!isOpenDelimiter && AcceptExact(CppTokenType.Symbol, m_DelimiterStack.Peek()))
+         if (!isOpenDelimiter && AcceptExact(TokenType.Symbol, m_DelimiterStack.Peek()))
          {
             m_DelimiterStack.Pop();
          }
@@ -706,7 +706,7 @@ internal partial class CppSyntacticAnalyzer
 
       if (m_DelimiterStack.Count > 0)
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, $"Expected \"{m_DelimiterStack.Peek()}\".");
+         throw new IllFormedCodeException(CurrentTokenPosition, $"Expected \"{m_DelimiterStack.Peek()}\".");
       }
    }
 
@@ -714,13 +714,13 @@ internal partial class CppSyntacticAnalyzer
    {
       if (!TrySkipDelimiters(openChar, closeChar))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, "Expected \"{\".");
+         throw new IllFormedCodeException(CurrentTokenPosition, "Expected \"{\".");
       }
    }
 
    private bool TrySkipDelimiters(char openChar = '{', char closeChar = '}')
    {
-      if (!AcceptExact(CppTokenType.Symbol, openChar))
+      if (!AcceptExact(TokenType.Symbol, openChar))
       {
          return false;
       }
@@ -728,13 +728,13 @@ internal partial class CppSyntacticAnalyzer
       int scopeCount = 1;
       while (!IsEndOfFile && scopeCount > 0)
       {
-         if (AcceptExact(CppTokenType.Symbol, openChar))
+         if (AcceptExact(TokenType.Symbol, openChar))
          {
             scopeCount++;
             continue;
          }
 
-         if (AcceptExact(CppTokenType.Symbol, closeChar))
+         if (AcceptExact(TokenType.Symbol, closeChar))
          {
             scopeCount--;
             continue;
@@ -745,21 +745,21 @@ internal partial class CppSyntacticAnalyzer
 
       if (scopeCount != 0)
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, $"Expected \"{closeChar}\".");
+         throw new IllFormedCodeException(CurrentTokenPosition, $"Expected \"{closeChar}\".");
       }
 
       return true;
    }
 
-   private void ExpectExact(CppTokenType type, ReadOnlySpan<char> value, string? message = null)
+   private void ExpectExact(TokenType type, ReadOnlySpan<char> value, string? message = null)
    {
       if (!AcceptExact(type, value))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, message ?? "Unexpected token.");
+         throw new IllFormedCodeException(CurrentTokenPosition, message ?? "Unexpected token.");
       }
    }
 
-   private bool AcceptAny(CppTokenType type)
+   private bool AcceptAny(TokenType type)
    {
       if ((CurrentTokenType & type) != 0)
       {
@@ -770,7 +770,7 @@ internal partial class CppSyntacticAnalyzer
       return false;
    }
 
-   private bool AcceptExact(CppTokenType type, out ReadOnlySpan<char> token)
+   private bool AcceptExact(TokenType type, out ReadOnlySpan<char> token)
    {
       if ((CurrentTokenType & type) != 0)
       {
@@ -783,7 +783,7 @@ internal partial class CppSyntacticAnalyzer
       return false;
    }
 
-   private bool AcceptExact(CppTokenType type, char c)
+   private bool AcceptExact(TokenType type, char c)
    {
       if (!IsEndOfFile && CurrentTokenType == type && CurrentTokenValue[0] == c)
       {
@@ -796,7 +796,7 @@ internal partial class CppSyntacticAnalyzer
 
    private bool AcceptExact
    (
-      CppTokenType bothType,
+      TokenType bothType,
       ReadOnlySpan<char> firstValue,
       ReadOnlySpan<char> secondValue,
       StringComparison comparison = StringComparison.Ordinal
@@ -814,9 +814,9 @@ internal partial class CppSyntacticAnalyzer
 
    private bool AcceptExact
    (
-      CppTokenType firtType,
+      TokenType firtType,
       ReadOnlySpan<char> firstValue,
-      CppTokenType secondType,
+      TokenType secondType,
       ReadOnlySpan<char> secondValue,
       StringComparison comparison = StringComparison.Ordinal
    )
@@ -835,14 +835,14 @@ internal partial class CppSyntacticAnalyzer
    {
       if (!AcceptKeyword(value))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, message ?? $"Expected \"{value}\" keyword.");
+         throw new IllFormedCodeException(CurrentTokenPosition, message ?? $"Expected \"{value}\" keyword.");
       }
    }
 
    private bool AcceptKeywordSequence(ReadOnlySpan<char> firstValue, ReadOnlySpan<char> secondValue)
    {
       int index = m_Position;
-      if (AcceptExact(CppTokenType.Keyword, firstValue) && AcceptExact(CppTokenType.Keyword, secondValue))
+      if (AcceptExact(TokenType.Keyword, firstValue) && AcceptExact(TokenType.Keyword, secondValue))
       {
          return true;
       }
@@ -853,15 +853,15 @@ internal partial class CppSyntacticAnalyzer
 
    private bool AcceptKeyword(ReadOnlySpan<char> value)
    {
-      return AcceptExact(CppTokenType.Keyword, value);
+      return AcceptExact(TokenType.Keyword, value);
    }
 
    private bool AcceptEngineHeader(ReadOnlySpan<char> header)
    {
-      return AcceptExact(CppTokenType.EngineHeader, header);
+      return AcceptExact(TokenType.EngineHeader, header);
    }
 
-   private bool Peek(CppTokenType type)
+   private bool Peek(TokenType type)
    {
       if (!IsEndOfFile && (CurrentTokenType & type) != 0)
       {
@@ -871,7 +871,7 @@ internal partial class CppSyntacticAnalyzer
       return false;
    }
 
-   private bool PeekExact(CppTokenType type, ReadOnlySpan<char> value, StringComparison comparison = StringComparison.Ordinal)
+   private bool PeekExact(TokenType type, ReadOnlySpan<char> value, StringComparison comparison = StringComparison.Ordinal)
    {
       if (!IsEndOfFile && CurrentTokenType == type && IsCurrentTokenExact(value, comparison))
       {
@@ -881,7 +881,7 @@ internal partial class CppSyntacticAnalyzer
       return false;
    }
 
-   private bool AcceptExact(CppTokenType type, ReadOnlySpan<char> value, StringComparison comparison = StringComparison.Ordinal)
+   private bool AcceptExact(TokenType type, ReadOnlySpan<char> value, StringComparison comparison = StringComparison.Ordinal)
    {
       if (!IsEndOfFile && CurrentTokenType == type && IsCurrentTokenExact(value, comparison))
       {
@@ -892,15 +892,15 @@ internal partial class CppSyntacticAnalyzer
       return false;
    }
 
-   private void Expect(CppTokenType type, out StringView tokenValue, string message)
+   private void Expect(TokenType type, out StringView tokenValue, string message)
    {
       if (!Accept(type, out tokenValue))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, message);
+         throw new IllFormedCodeException(CurrentTokenPosition, message);
       }
    }
 
-   private bool Accept(CppTokenType validTypes, out StringView value)
+   private bool Accept(TokenType validTypes, out StringView value)
    {
       if ((CurrentTokenType & validTypes) != 0)
       {
@@ -913,23 +913,23 @@ internal partial class CppSyntacticAnalyzer
       return false;
    }
 
-   private void ExpectFormat(CppTokenType type, string format, string arg0)
+   private void ExpectFormat(TokenType type, string format, string arg0)
    {
       if (!Accept(type))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, string.Format(format, arg0));
+         throw new IllFormedCodeException(CurrentTokenPosition, string.Format(format, arg0));
       }
    }
 
-   private void Expect(CppTokenType type, string message)
+   private void Expect(TokenType type, string message)
    {
       if (!Accept(type))
       {
-         throw new CppIllFormedCodeException(CurrentTokenPosition, message);
+         throw new IllFormedCodeException(CurrentTokenPosition, message);
       }
    }
 
-   private bool Accept(CppTokenType type)
+   private bool Accept(TokenType type)
    {
       if ((CurrentTokenType & type) != 0)
       {

@@ -2,10 +2,10 @@ using System.Runtime.CompilerServices;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-internal static class CppNumericLiteralLexicalAnalysis
+internal static class NumericLiteralLexicalAnalysis
 {
    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-   public static bool TryConsume(CppLexicalAnalyzer analyzer)
+   public static bool TryConsume(LexicalAnalyzer analyzer)
    {
       return TryConsumeHexadecimalLiteral(analyzer)
          || TryConsumeBinaryLiteral(analyzer)
@@ -14,7 +14,7 @@ internal static class CppNumericLiteralLexicalAnalysis
    }
 
    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-   public static bool TryConsumeDecimalLiteral(CppLexicalAnalyzer analyzer)
+   public static bool TryConsumeDecimalLiteral(LexicalAnalyzer analyzer)
    {
       int start = analyzer.Position;
       bool isFloating = false;
@@ -37,7 +37,7 @@ internal static class CppNumericLiteralLexicalAnalysis
    }
 
    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-   public static bool TryConsumeOctalLiteral(CppLexicalAnalyzer analyzer)
+   public static bool TryConsumeOctalLiteral(LexicalAnalyzer analyzer)
    {
       int start = analyzer.Position;
       if (!analyzer.TryConsume('0') || !analyzer.TryConsumeDigit(8))
@@ -47,14 +47,14 @@ internal static class CppNumericLiteralLexicalAnalysis
       }
 
       ConsumeDigits(analyzer, 8);
-      if (!analyzer.IsEndOfFile && CppLexicalAnalyzer.AsciiHexDigitToInt(analyzer.CurrentCharacter) >= 8)
+      if (!analyzer.IsEndOfFile && LexicalAnalyzer.AsciiHexDigitToInt(analyzer.CurrentCharacter) >= 8)
       {
-         throw new CppIllFormedCodeException(analyzer.Position, "Invalid digit in octal constant.");
+         throw new IllFormedCodeException(analyzer.Position, "Invalid digit in octal constant.");
       }
 
       if (analyzer.TryConsume('.'))
       {
-         throw new CppIllFormedCodeException(analyzer.Position, "Invalid prefix \"0\" for floating constant.");
+         throw new IllFormedCodeException(analyzer.Position, "Invalid prefix \"0\" for floating constant.");
       }
 
       TryConsumeExponent(analyzer);
@@ -63,7 +63,7 @@ internal static class CppNumericLiteralLexicalAnalysis
    }
 
    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-   public static bool TryConsumeBinaryLiteral(CppLexicalAnalyzer analyzer)
+   public static bool TryConsumeBinaryLiteral(LexicalAnalyzer analyzer)
    {
       int start = analyzer.Position;
       if (!analyzer.TryConsumeIgnoreCase("0b") && !analyzer.TryConsumeDigit(2))
@@ -74,14 +74,14 @@ internal static class CppNumericLiteralLexicalAnalysis
 
       ConsumeDigits(analyzer, 2);
 
-      if (!analyzer.IsEndOfFile && CppLexicalAnalyzer.AsciiHexDigitToInt(analyzer.CurrentCharacter) >= 2)
+      if (!analyzer.IsEndOfFile && LexicalAnalyzer.AsciiHexDigitToInt(analyzer.CurrentCharacter) >= 2)
       {
-         throw new CppIllFormedCodeException(analyzer.Position, "Invalid digit in binary constant.");
+         throw new IllFormedCodeException(analyzer.Position, "Invalid digit in binary constant.");
       }
 
       if (analyzer.TryConsume('.') || analyzer.TryConsume('e'))
       {
-         throw new CppIllFormedCodeException(analyzer.Position, "Invalid prefix \"0b\" for floating constant.");
+         throw new IllFormedCodeException(analyzer.Position, "Invalid prefix \"0b\" for floating constant.");
       }
 
       analyzer.TryConsumeIdentifier(out _);
@@ -89,7 +89,7 @@ internal static class CppNumericLiteralLexicalAnalysis
    }
 
    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-   public static bool TryConsumeHexadecimalLiteral(CppLexicalAnalyzer ctx)
+   public static bool TryConsumeHexadecimalLiteral(LexicalAnalyzer ctx)
    {
       int start = ctx.Position;
       bool isFloating = false;
@@ -111,7 +111,7 @@ internal static class CppNumericLiteralLexicalAnalysis
       {
          if (!ctx.TryConsumeIgnoreCase('p'))
          {
-            throw new CppIllFormedCodeException(ctx.Position, "Hexadecimal floating constants require an exponent.");
+            throw new IllFormedCodeException(ctx.Position, "Hexadecimal floating constants require an exponent.");
          }
 
          ctx.TryConsumeSingleNumericSign();
@@ -123,7 +123,7 @@ internal static class CppNumericLiteralLexicalAnalysis
    }
 
    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-   private static bool TryConsumeExponent(CppLexicalAnalyzer analyzer)
+   private static bool TryConsumeExponent(LexicalAnalyzer analyzer)
    {
       if (!analyzer.TryConsumeIgnoreCase('e'))
       {
@@ -134,7 +134,7 @@ internal static class CppNumericLiteralLexicalAnalysis
 
       if (!analyzer.TryConsumeDigit(10))
       {
-         throw new CppIllFormedCodeException(analyzer.Position, "Exponent has no digits.");
+         throw new IllFormedCodeException(analyzer.Position, "Exponent has no digits.");
       }
 
       ConsumeDigits(analyzer, 10);
@@ -142,7 +142,7 @@ internal static class CppNumericLiteralLexicalAnalysis
    }
 
    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-   private static void ConsumeDigits(CppLexicalAnalyzer analyzer, int numericBase)
+   private static void ConsumeDigits(LexicalAnalyzer analyzer, int numericBase)
    {
       while (analyzer.TryConsumeDigit(numericBase))
       {
