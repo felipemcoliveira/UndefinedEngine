@@ -4,29 +4,31 @@ using System.Collections.Generic;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-internal class LexicalAnalyzer
+internal class Tokenizer
 {
-   public int EndOfFilePosition => m_SourceCode.Length;
-   public bool IsEndOfFile => Position >= EndOfFilePosition;
-   public char CurrentCharacter => m_SourceCode[Position];
+   private int EndOfFilePosition => m_SourceFileContent.Length;
+   private bool IsEndOfFile => Position >= EndOfFilePosition;
+   private char CurrentCharacter => m_SourceFileContent[Position];
 
-   internal int Position { get; set; }
+   private int Position { get; set; }
 
    private static readonly Dictionary<StringView, TokenType> s_SpecialIdentifierTokenTypes;
    private static readonly HashSet<char> s_SymbolCharacters;
    private static readonly HashSet<StringView> s_AllSymbols;
 
-   private readonly string m_SourceCode;
-   private readonly ReadOnlyMemory<char> m_SourceCodeMemory;
+   private readonly SourceFile m_SourceFile;
+   private readonly string m_SourceFileContent;
+   private readonly ReadOnlyMemory<char> m_SourceFileContentMemory;
 
-   public LexicalAnalyzer(string sourceCode)
+   public Tokenizer(SourceFile sourceFile)
    {
-      m_SourceCode = sourceCode;
-      m_SourceCodeMemory = sourceCode.AsMemory();
+      m_SourceFile = sourceFile;
+      m_SourceFileContent = sourceFile.Content;
+      m_SourceFileContentMemory = sourceFile.Content.AsMemory();
       Position = 0;
    }
 
-   static LexicalAnalyzer()
+   static Tokenizer()
    {
       s_SpecialIdentifierTokenTypes = new()
       {
@@ -200,7 +202,7 @@ internal class LexicalAnalyzer
 
    public LexicalAnalysis Analyze()
    {
-      List<Token> tokens = new(20 / m_SourceCode.Length);
+      List<Token> tokens = new(20 / m_SourceFileContent.Length);
       List<int> engineHeaderTokenIndices = new(5);
 
       Position = 0;
@@ -299,7 +301,7 @@ internal class LexicalAnalyzer
             case '.':
             {
                int start = Position;
-               if (TryConsumeNumberLiteral())
+               if (TryConsumeNumericLiteral())
                {
                   AddToken(tokens, TokenType.Symbol, start, Position - start);
                   break;
@@ -322,13 +324,13 @@ internal class LexicalAnalyzer
             case >= '0' and <= '9':
             {
                int start = Position;
-               if (TryConsumeNumberLiteral())
+               if (TryConsumeNumericLiteral())
                {
                   AddToken(tokens, TokenType.NumericLiteral, start, Position - start);
                   break;
                }
 
-               throw new IllFormedCodeException(Position, "Unexpected character.");
+               throw CreateIllFormedCodeException(start, "Unexpected character.");
             }
 
             case '_':
@@ -364,13 +366,13 @@ internal class LexicalAnalyzer
 
             default:
             {
-               throw new IllFormedCodeException(Position, "Unexpected character.");
+               throw CreateIllFormedCodeException(Position, "Unexpected character.");
             }
          }
       }
 
       AddToken(tokens, TokenType.EndOfFile, EndOfFilePosition, 0);
-      return new(tokens, engineHeaderTokenIndices, m_SourceCode);
+      return new(tokens, engineHeaderTokenIndices, m_SourceFileContent);
    }
 
    private void AddToken(List<Token> tokens, TokenType type, int start, int length)
@@ -379,17 +381,12 @@ internal class LexicalAnalyzer
       (
          type: type,
          startPosition: start,
-         contentView: m_SourceCodeMemory.Slice(start, length),
+         contentView: m_SourceFileContentMemory.Slice(start, length),
          index: tokens.Count
       ));
    }
 
-   internal bool TryConsumeNumberLiteral()
-   {
-      return NumericLiteralLexicalAnalysis.TryConsume(this);
-   }
-
-   internal bool TryConsumeNumericLiteralDigits(int numericBase)
+   private bool TryConsumeNumericLiteralDigits(int numericBase)
    {
       int start = Position;
       while (!IsEndOfFile)
@@ -405,17 +402,17 @@ internal class LexicalAnalyzer
 
       if (!IsEndOfFile && char.IsDigit(CurrentCharacter))
       {
-         throw new IllFormedCodeException(Position, "Invalid digit base in number literal.");
+         throw CreateIllFormedCodeException(Position, "Invalid digit base in number literal.");
       }
 
       return Position != start;
    }
 
-   internal void ConsumeCharLiteral()
+   private void ConsumeCharLiteral()
    {
       if (!TryConsume('\''))
       {
-         throw new IllFormedCodeException(Position, "Invalid character literal.");
+         throw CreateIllFormedCodeException(Position, "Invalid character literal.");
       }
 
       if (TryConsume('\\'))
@@ -450,26 +447,26 @@ internal class LexicalAnalyzer
 
                if (!TryConsume('\''))
                {
-                  throw new IllFormedCodeException(Position, "Unterminated character literal.");
+                  throw CreateIllFormedCodeException(Position, "Unterminated character literal.");
                }
 
                break;
             }
             default:
             {
-               throw new IllFormedCodeException(Position, "Invalid escape sequence.");
+               throw CreateIllFormedCodeException(Position, "Invalid escape sequence.");
             }
          }
 
          ConsumeCharacter();
          if (!TryConsume('\''))
          {
-            throw new IllFormedCodeException(Position, "Unterminated character literal.");
+            throw CreateIllFormedCodeException(Position, "Unterminated character literal.");
          }
       }
    }
 
-   internal void ConsumeStringLiteral(bool isRawLiteralString)
+   private void ConsumeStringLiteral(bool isRawLiteralString)
    {
       if (isRawLiteralString)
       {
@@ -485,7 +482,7 @@ internal class LexicalAnalyzer
    /// current position is at the beginning (first quote) of the raw literal
    /// string.
    /// </summary>
-   /// <param name="start">Position of the first quote.</param>
+   /// <param name="start">ContentPosition of the first quote.</param>
    /// <exception cref="IllFormedCodeException">Thrown when the syntax of the
    ///    raw string literal does not conform to C++ standards. This could be
    ///    due to an incorrect start (missing opening quote), improper delimiter
@@ -495,11 +492,11 @@ internal class LexicalAnalyzer
    /// This method should be used after the literal prefix "R" has been
    /// consumed.
    /// </remarks>
-   internal void ConsumeRawLiteralString()
+   private void ConsumeRawLiteralString()
    {
       if (!TryConsume('"'))
       {
-         throw new IllFormedCodeException(Position, "Invalid raw string literal.");
+         throw CreateIllFormedCodeException(Position, "Invalid raw string literal.");
       }
 
       int quoteCount = 1;
@@ -516,7 +513,7 @@ internal class LexicalAnalyzer
       TryConsumeIdentifier(out ReadOnlySpan<char> delimiter);
       if (!TryConsume('('))
       {
-         throw new IllFormedCodeException(Position, "Invalid raw string literal.");
+         throw CreateIllFormedCodeException(Position, "Invalid raw string literal.");
       }
 
       while (!IsEndOfFile)
@@ -531,14 +528,14 @@ internal class LexicalAnalyzer
          ConsumeCharacter();
       }
 
-      throw new IllFormedCodeException(Position, "Unterminated string literal.");
+      throw CreateIllFormedCodeException(Position, "Unterminated string literal.");
    }
 
-   internal void ConsumeStringLiteral()
+   private void ConsumeStringLiteral()
    {
       if (!TryConsume('"'))
       {
-         throw new IllFormedCodeException(Position, "Invalid string literal.");
+         throw CreateIllFormedCodeException(Position, "Invalid string literal.");
       }
 
       while (!IsEndOfFile)
@@ -553,14 +550,14 @@ internal class LexicalAnalyzer
       }
    }
 
-   internal bool TryConsumeSymbol(out int start, out int length)
+   private bool TryConsumeSymbol(out int start, out int length)
    {
       start = Position;
       length = Math.Min(3, EndOfFilePosition - Position);
 
       while (length > 0)
       {
-         ReadOnlySpan<char> symbol = m_SourceCode.AsSpan().Slice(start, length);
+         ReadOnlySpan<char> symbol = m_SourceFileContent.AsSpan().Slice(start, length);
          if (s_AllSymbols.Contains(symbol))
          {
             Position += length;
@@ -573,7 +570,7 @@ internal class LexicalAnalyzer
       return false;
    }
 
-   internal bool TryConsumeDigit(int numericBase)
+   private bool TryConsumeDigit(int numericBase)
    {
       int digit = AsciiHexDigitToInt(CurrentCharacter);
       if (digit == -1 || digit >= numericBase)
@@ -585,12 +582,7 @@ internal class LexicalAnalyzer
       return true;
    }
 
-   internal static bool IsSymbolCharacter(char c)
-   {
-      return s_SymbolCharacters.Contains(c);
-   }
-
-   internal void ConsumeWhitespaces()
+   private void ConsumeWhitespaces()
    {
       while (!IsEndOfFile && char.IsWhiteSpace(CurrentCharacter))
       {
@@ -598,7 +590,7 @@ internal class LexicalAnalyzer
       }
    }
 
-   internal static TokenType GetIdentifierTokenType(StringView identifier)
+   private static TokenType GetIdentifierTokenType(StringView identifier)
    {
       if (s_SpecialIdentifierTokenTypes.TryGetValue(identifier, out TokenType specialTokenType))
       {
@@ -608,14 +600,158 @@ internal class LexicalAnalyzer
       return TokenType.Identifier;
    }
 
-   internal bool TryConsumeIdentifier(out ReadOnlySpan<char> identifier)
+   private bool TryConsumeNumericLiteral()
+   {
+      return TryConsumeHexadecimalLiteral()
+         || TryConsumeBinaryLiteral()
+         || TryConsumeOctalLiteral()
+         || TryConsumeDecimalLiteral();
+   }
+
+   private bool TryConsumeDecimalLiteral()
+   {
+      int start = Position;
+      bool isFloating = false;
+      if (!TryConsumeDigit(10) && !(isFloating = TryConsume('.') && TryConsumeDigit(10)))
+      {
+         Position = start;
+         return false;
+      }
+
+      ConsumeDigits(10);
+
+      if (!isFloating && TryConsume('.'))
+      {
+         ConsumeDigits(10);
+      }
+
+      TryConsumeExponent();
+
+      // user-define literal operator identifier
+      TryConsumeIdentifier(out _);
+      return true;
+   }
+
+   private bool TryConsumeOctalLiteral()
+   {
+      int start = Position;
+      if (!TryConsume('0') || !TryConsumeDigit(8))
+      {
+         Position = start;
+         return false;
+      }
+
+      ConsumeDigits(8);
+      if (!IsEndOfFile && AsciiHexDigitToInt(CurrentCharacter) >= 8)
+      {
+         throw CreateIllFormedCodeException(Position, "Invalid digit in octal constant.");
+      }
+
+      if (TryConsume('.'))
+      {
+         throw CreateIllFormedCodeException(Position, "Invalid prefix \"0\" for floating constant.");
+      }
+
+      TryConsumeExponent();
+
+      // user-define literal operator identifier
+      TryConsumeIdentifier(out _);
+      return true;
+   }
+
+   private bool TryConsumeBinaryLiteral()
+   {
+      int start = Position;
+      if (!TryConsumeIgnoreCase("0b") && !TryConsumeDigit(2))
+      {
+         Position = start;
+         return false;
+      }
+
+      ConsumeDigits(2);
+
+      if (!IsEndOfFile && AsciiHexDigitToInt(CurrentCharacter) >= 2)
+      {
+         throw CreateIllFormedCodeException(Position, "Invalid digit in binary constant.");
+      }
+
+      if (TryConsume('.') || TryConsume('e'))
+      {
+         throw CreateIllFormedCodeException(Position, "Invalid prefix \"0b\" for floating constant.");
+      }
+
+      // user-define literal operator identifier
+      TryConsumeIdentifier(out _);
+      return true;
+   }
+
+   private bool TryConsumeHexadecimalLiteral()
+   {
+      int start = Position;
+      bool isFloating = false;
+      if (!TryConsumeIgnoreCase("0x") || !TryConsumeDigit(16) && !(isFloating = TryConsume('.') && TryConsumeDigit(16)))
+      {
+         Position = start;
+         return false;
+      }
+
+      ConsumeDigits(16);
+
+      if (!isFloating && TryConsume('.'))
+      {
+         isFloating = true;
+         ConsumeDigits(16);
+      }
+
+      if (isFloating)
+      {
+         if (!TryConsumeIgnoreCase('p'))
+         {
+            throw CreateIllFormedCodeException(Position, "Hexadecimal floating constants require an exponent.");
+         }
+
+         TryConsumeSingleNumericSign();
+         ConsumeDigits(10);
+      }
+
+      // user-define literal operator identifier
+      TryConsumeIdentifier(out _);
+      return true;
+   }
+
+   private bool TryConsumeExponent()
+   {
+      if (!TryConsumeIgnoreCase('e'))
+      {
+         return false;
+      }
+
+      TryConsumeSingleNumericSign();
+
+      if (!TryConsumeDigit(10))
+      {
+         throw CreateIllFormedCodeException(Position, "Exponent has no digits.");
+      }
+
+      ConsumeDigits(10);
+      return true;
+   }
+
+   private void ConsumeDigits(int numericBase)
+   {
+      while (TryConsumeDigit(numericBase))
+      {
+      }
+   }
+
+   private bool TryConsumeIdentifier(out ReadOnlySpan<char> identifier)
    {
       bool value = TryConsumeIdentifier(out int start, out int length);
-      identifier = m_SourceCode.AsSpan().Slice(start, length);
+      identifier = m_SourceFileContent.AsSpan().Slice(start, length);
       return value;
    }
 
-   internal bool TryConsumeIdentifier(out int start, out int length)
+   private bool TryConsumeIdentifier(out int start, out int length)
    {
       start = Position;
       length = 0;
@@ -633,12 +769,12 @@ internal class LexicalAnalyzer
       return true;
    }
 
-   internal bool TryConsumeComment()
+   private bool TryConsumeComment()
    {
       return TryConsumeSingleLineComment() || TryConsumeMultilineComment();
    }
 
-   internal bool TryConsumeSingleLineComment()
+   private bool TryConsumeSingleLineComment()
    {
       if (!TryConsume("//"))
       {
@@ -649,7 +785,7 @@ internal class LexicalAnalyzer
       return true;
    }
 
-   internal bool TryConsumeMultilineComment()
+   private bool TryConsumeMultilineComment()
    {
       if (!TryConsume("/*"))
       {
@@ -667,10 +803,10 @@ internal class LexicalAnalyzer
          ConsumeCharacter();
       }
 
-      throw new IllFormedCodeException(Position, "Unterminated comment");
+      throw CreateIllFormedCodeException(Position, "Unterminated comment");
    }
 
-   internal bool TryConsumeSingleNumericSign()
+   private bool TryConsumeSingleNumericSign()
    {
       while (CurrentCharacter is '+' or '-')
       {
@@ -681,7 +817,7 @@ internal class LexicalAnalyzer
       return false;
    }
 
-   internal bool TryConsume(char c)
+   private bool TryConsume(char c)
    {
       if (!IsEndOfFile && CurrentCharacter == c)
       {
@@ -692,7 +828,7 @@ internal class LexicalAnalyzer
       return false;
    }
 
-   internal bool TryConsumeIgnoreCase(char c)
+   private bool TryConsumeIgnoreCase(char c)
    {
       if (!IsEndOfFile && char.ToUpper(CurrentCharacter) == char.ToUpper(c))
       {
@@ -703,10 +839,10 @@ internal class LexicalAnalyzer
       return false;
    }
 
-   internal bool TryConsume(char c, int count)
+   private bool TryConsume(char c, int count)
    {
       int newPosition = Position;
-      while (newPosition < EndOfFilePosition && m_SourceCode[newPosition] == c)
+      while (newPosition < EndOfFilePosition && m_SourceFileContent[newPosition] == c)
       {
          newPosition++;
          if (newPosition - Position == count)
@@ -719,10 +855,10 @@ internal class LexicalAnalyzer
       return false;
    }
 
-   internal bool TryConsume(ReadOnlySpan<char> token)
+   private bool TryConsume(ReadOnlySpan<char> token)
    {
       int newPosition = Position;
-      while (newPosition < EndOfFilePosition && m_SourceCode[newPosition] == token[newPosition - Position])
+      while (newPosition < EndOfFilePosition && m_SourceFileContent[newPosition] == token[newPosition - Position])
       {
          newPosition++;
          if (newPosition - Position == token.Length)
@@ -735,10 +871,11 @@ internal class LexicalAnalyzer
       return false;
    }
 
-   internal bool TryConsumeIgnoreCase(ReadOnlySpan<char> token)
+   private bool TryConsumeIgnoreCase(ReadOnlySpan<char> token)
    {
       int newPosition = Position;
-      while (newPosition < EndOfFilePosition && char.ToUpper(m_SourceCode[newPosition]) == char.ToUpper(token[newPosition - Position]))
+      while (newPosition < EndOfFilePosition
+         && char.ToUpper(m_SourceFileContent[newPosition]) == char.ToUpper(token[newPosition - Position]))
       {
          newPosition++;
          if (newPosition - Position == token.Length)
@@ -751,29 +888,17 @@ internal class LexicalAnalyzer
       return false;
    }
 
-   internal bool IsCharacterAt(int position, char c)
+   private bool IsCharacterAt(int position, char c)
    {
-      if (position < m_SourceCode.Length)
+      if (position < m_SourceFileContent.Length)
       {
-         return m_SourceCode[position] == c;
+         return m_SourceFileContent[position] == c;
       }
 
       return false;
    }
 
-   internal bool PeekNextCharacter(out char character)
-   {
-      if (Position + 1 < EndOfFilePosition)
-      {
-         character = m_SourceCode[Position + 1];
-         return true;
-      }
-
-      character = default;
-      return false;
-   }
-
-   internal void ConsumeLine()
+   private void ConsumeLine()
    {
       while (!IsEndOfFile)
       {
@@ -786,7 +911,7 @@ internal class LexicalAnalyzer
       }
    }
 
-   internal bool TryConsumeNewLineCharacters()
+   private bool TryConsumeNewLineCharacters()
    {
       // CRLF
       if (CurrentCharacter == '\r' && IsCharacterAt(Position + 1, '\n'))
@@ -811,7 +936,7 @@ internal class LexicalAnalyzer
       return false;
    }
 
-   internal void ConsumeCharacter()
+   private void ConsumeCharacter()
    {
       Position++;
    }
@@ -820,7 +945,7 @@ internal class LexicalAnalyzer
    {
       if (IsEndOfFile)
       {
-         throw new IllFormedCodeException(Position, message);
+         throw CreateIllFormedCodeException(Position, message);
       }
    }
 
@@ -847,5 +972,11 @@ internal class LexicalAnalyzer
       }
 
       return -1;
+   }
+
+   private static IllFormedCodeException CreateIllFormedCodeException(int contentPosition, string message)
+   {
+      SourceFilePosition position = new(SourceFilePositionType.ContentPosition, contentPosition);
+      return new IllFormedCodeException(position, message);
    }
 }

@@ -46,7 +46,9 @@
     <None Remove="bin\**" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Architecture.cs" />
+    <Compile Include="Container\IContainer.cs" />
+    <Compile Include="Types\Architecture.cs" />
+    <Compile Include="Utilities\ArchitectureUtility.cs" />
     <Compile Include="CommandLineOptions\ArgumentParser.cs" />
     <Compile Include="CommandLineOptions\BooleanArgumentParser.cs" />
     <Compile Include="CommandLineOptions\CommandLineArguments.cs" />
@@ -55,24 +57,25 @@
     <Compile Include="CommandLineOptions\NumberArgumentParser.cs" />
     <Compile Include="CommandLineOptions\CommandLineParseException.cs" />
     <Compile Include="CommandLineOptions\StringArgumentParser.cs" />
-    <Compile Include="Editor.cs" />
-    <Compile Include="ILogger.cs" />
-    <Compile Include="Log.cs" />
-    <Compile Include="LogCallerInfo.cs" />
-    <Compile Include="Logger.cs" />
-    <Compile Include="LogLevel.cs" />
-    <Compile Include="LogScope.cs" />
-    <Compile Include="LogInterpolatedStringHandler.cs" />
-    <Compile Include="LogServiceExtensionMethods.cs" />
-    <Compile Include="Platform.cs" />
+    <Compile Include="Utilities\PlatformUtility.cs" />
+    <Compile Include="Types\Editor.cs" />
+    <Compile Include="Logging\ILogger.cs" />
+    <Compile Include="Logging\Log.cs" />
+    <Compile Include="Logging\LogCallerInfo.cs" />
+    <Compile Include="Logging\Logger.cs" />
+    <Compile Include="Logging\LogLevel.cs" />
+    <Compile Include="Logging\LogScope.cs" />
+    <Compile Include="Logging\LogInterpolatedStringHandler.cs" />
+    <Compile Include="Logging\LogServiceExtensionMethods.cs" />
+    <Compile Include="Types\Platform.cs" />
     <Compile Include="Container\Container.cs" />
     <Compile Include="Container\InjectAttribute.cs" />
-    <Compile Include="ScopedLogger.cs" />
-    <Compile Include="StringView.cs" />
-    <Compile Include="TypeUtility.cs" />
-    <Compile Include="Version.cs" />
-    <Compile Include="VisualStudioProductInfo.cs" />
-    <Compile Include="VisualStudioUtility.cs" />
+    <Compile Include="Logging\ScopedLogger.cs" />
+    <Compile Include="Types\StringView.cs" />
+    <Compile Include="Utilities\TypeUtility.cs" />
+    <Compile Include="Types\Version.cs" />
+    <Compile Include="Types\VisualStudioProductInfo.cs" />
+    <Compile Include="Utilities\VisualStudioUtility.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json">

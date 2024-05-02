@@ -60,9 +60,4 @@
   <ItemGroup>
     <ProjectReference Include="..\Shared\BandoWare.Core\BandoWare.Core.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\..\Binaries\ThirdParty\Newtonsoft\Json\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-  </ItemGroup>
 </Project>

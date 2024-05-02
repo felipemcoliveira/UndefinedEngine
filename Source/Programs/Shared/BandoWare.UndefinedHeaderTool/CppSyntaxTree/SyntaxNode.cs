@@ -45,7 +45,7 @@ public class SyntaxNode : IEnumerable<SyntaxNode>
       if (m_Children == null)
          return Enumerable.Empty<T>();
 
-      return m_Children.Where(n => n is T).Cast<T>();
+      return m_Children.OfType<T>();
    }
 
    public void AddChildren(IEnumerable<SyntaxNode>? nodes)
