@@ -18,11 +18,6 @@ public class CppSourceCode
       m_Ranges = ranges;
    }
 
-   public ReadOnlySpan<char> GetToken(CppToken token)
-   {
-      return SourceCode.AsSpan(token.StartPosition, token.Length);
-   }
-
    public (int LineNumber, int ColumnNumber) GetLineAndColumn(int position)
    {
       if (m_RangeStartPositions == null)
@@ -45,7 +40,7 @@ public class CppSourceCode
          index = m_Ranges.Count - 1;
       }
 
-      var range = m_Ranges[index];
+      CppSouceCodeRange range = m_Ranges[index];
       return (range.Column, range.Column + (position - range.StartPosition));
    }
 }

@@ -1,18 +1,10 @@
-using Range = UndefinedCore.Range;
+using System.Diagnostics;
+using UndefinedCore;
 
 namespace UndefinedHeader.SyntaxTree;
 
-public class CppSpecifierNode
-   (
-      Range tokensRange,
-      CppToken identifierToken,
-      Range valueTokensRange,
-      CppLexicalAnalysis lexicalAnalysis
-   )
-   : CppSyntaxNode(tokensRange, lexicalAnalysis)
+[DebuggerDisplay("{Name,nq}")]
+public class CppSpecifierNode(StringView name) : CppSyntaxNode
 {
-   public CppToken IdentifierToken { get; } = identifierToken;
-   public Range ValueTokensRange { get; } = valueTokensRange;
-
-   public string Identifier => LexicalAnalysis.GetTokenValue(IdentifierToken);
+   public StringView Name { get; private set; } = name;
 }

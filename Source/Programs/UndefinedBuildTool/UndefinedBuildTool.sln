@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UndefinedBuildTool", "Undef
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UndefinedCore", "..\UndefinedCore\UndefinedCore.csproj", "{83FB7209-4EB3-48B1-963C-9C0C2FC36202}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UndefinedHeaderTool", "..\UndefinedHeaderTool\UndefinedHeaderTool.csproj", "{2CD8EF27-599A-4959-831C-A229EC63D8FD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{83FB7209-4EB3-48B1-963C-9C0C2FC36202}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{83FB7209-4EB3-48B1-963C-9C0C2FC36202}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{83FB7209-4EB3-48B1-963C-9C0C2FC36202}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CD8EF27-599A-4959-831C-A229EC63D8FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CD8EF27-599A-4959-831C-A229EC63D8FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CD8EF27-599A-4959-831C-A229EC63D8FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CD8EF27-599A-4959-831C-A229EC63D8FD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,14 +1,10 @@
 using System.Diagnostics;
-
-using Range = UndefinedCore.Range;
+using UndefinedCore;
 
 namespace UndefinedHeader.SyntaxTree;
 
-[DebuggerDisplay("UCLASS {Identifier,nq}")]
-public class CppClassNode(Range tokensRange, CppToken identifierToken, CppLexicalAnalysis lexicalAnalysis)
-   : CppSyntaxNode(tokensRange, lexicalAnalysis)
+[DebuggerDisplay("UCLASS {Name,nq}")]
+public class CppClassNode(StringView name) : CppSyntaxNode
 {
-   public CppToken IdentifierToken { get; } = identifierToken;
-
-   public string Identifier => LexicalAnalysis.GetTokenValue(IdentifierToken);
+   public StringView Name { get; private set; } = name;
 }

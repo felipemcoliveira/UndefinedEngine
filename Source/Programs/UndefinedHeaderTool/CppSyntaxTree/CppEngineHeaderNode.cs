@@ -1,22 +1,10 @@
-using Range = UndefinedCore.Range;
+using System.Diagnostics;
+using UndefinedCore;
 
 namespace UndefinedHeader.SyntaxTree;
 
-public class CppEngineHeaderNode(Range range, CppLexicalAnalysis lexicalAnalysis)
-   : CppSyntaxNode(range, lexicalAnalysis)
+[DebuggerDisplay("{Name,nq}")]
+public class CppEngineHeaderNode(StringView type) : CppSyntaxNode
 {
-   public bool TryGetSpecifier(string specifierName, out CppSpecifierNode? specifierNode)
-   {
-      foreach (CppSyntaxNode node in this)
-      {
-         if (node is CppSpecifierNode tmpSpecifierNode && tmpSpecifierNode.Identifier == specifierName)
-         {
-            specifierNode = tmpSpecifierNode;
-            return true;
-         }
-      }
-
-      specifierNode = null;
-      return false;
-   }
+   public StringView Type { get; private set; } = type;
 }

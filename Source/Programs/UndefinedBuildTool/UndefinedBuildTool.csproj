@@ -59,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\UndefinedCore\UndefinedCore.csproj" />
+    <ProjectReference Include="..\UndefinedHeaderTool\UndefinedHeaderTool.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json">

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UndefinedCore;
 
 namespace UndefinedHeader.SyntaxTree;
@@ -8,132 +7,134 @@ namespace UndefinedHeader.SyntaxTree;
 internal class CppLexicalAnalyzer
 {
    public int EndOfFilePosition => m_SourceCode.Length;
-   public bool IsEndOfFile => CurrentPosition >= EndOfFilePosition;
-   public char CurrentCharacter => m_SourceCode[CurrentPosition];
+   public bool IsEndOfFile => Position >= EndOfFilePosition;
+   public char CurrentCharacter => m_SourceCode[Position];
 
-   internal int CurrentPosition { get; set; }
+   internal int Position { get; set; }
 
-   private static readonly Dictionary<int, (string Identifier, CppTokenType Type)> s_AllCppKeywords;
+   private static readonly Dictionary<StringView, CppTokenType> s_SpecialIdentifierTokenTypes;
    private static readonly HashSet<char> s_SymbolCharacters;
-   private static readonly StringHashSet s_AllSymbols;
+   private static readonly HashSet<StringView> s_AllSymbols;
 
    private readonly string m_SourceCode;
+   private readonly ReadOnlyMemory<char> m_SourceCodeMemory;
 
    public CppLexicalAnalyzer(string sourceCode)
    {
       m_SourceCode = sourceCode;
-      CurrentPosition = 0;
+      m_SourceCodeMemory = sourceCode.AsMemory();
+      Position = 0;
    }
 
    static CppLexicalAnalyzer()
    {
-      s_AllCppKeywords = new
-      ([
-         CreateSpecialIdentifierEntry("alignas", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("alignof", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("and", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("and_eq", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("asm", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("atomic_cancel", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("atomic_commit", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("atomic_noexcept", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("auto", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("bitand", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("bitor", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("bool", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("break", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("case", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("catch", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("char", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("char8_t", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("char16_t", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("char32_t", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("class", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("compl", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("concept", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("const", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("consteval", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("constexpr", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("constinit", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("const_cast", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("continue", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("co_await", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("co_return", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("co_yield", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("decltype", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("default", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("delete", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("do", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("double", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("dynamic_cast", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("else", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("enum", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("explicit", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("export", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("extern", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("float", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("for", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("friend", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("goto", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("if", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("inline", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("int", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("long", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("mutable", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("namespace", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("new", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("noexcept", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("not", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("not_eq", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("operator", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("or", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("or_eq", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("private", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("protected", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("public", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("reflexpr", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("register", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("reinterpret_cast", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("requires", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("return", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("short", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("signed", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("sizeof", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("static", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("static_assert", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("static_cast", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("struct", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("switch", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("synchronized", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("template", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("this", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("thread_local", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("throw", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("try", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("typedef", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("typeid", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("typename", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("union", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("unsigned", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("using", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("virtual", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("void", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("volatile", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("wchar_t", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("while", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("xor", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("xor_eq", CppTokenType.Keyword),
-         CreateSpecialIdentifierEntry("true", CppTokenType.BooleanLiteral),
-         CreateSpecialIdentifierEntry("false", CppTokenType.BooleanLiteral),
-         CreateSpecialIdentifierEntry("nullptr", CppTokenType.PointerLiteral),
-         CreateSpecialIdentifierEntry("UCLASS", CppTokenType.EngineHeader),
-         CreateSpecialIdentifierEntry("UENUM", CppTokenType.EngineHeader),
-         CreateSpecialIdentifierEntry("USTRUCT", CppTokenType.EngineHeader),
-         CreateSpecialIdentifierEntry("UMETHOD", CppTokenType.EngineHeader),
-         CreateSpecialIdentifierEntry("UMETA", CppTokenType.EngineHeader),
-         CreateSpecialIdentifierEntry("UPROPERTY", CppTokenType.EngineHeader),
-         CreateSpecialIdentifierEntry("UFUNCTION", CppTokenType.EngineHeader),
-      ]);
+      s_SpecialIdentifierTokenTypes = new()
+      {
+         { "alignas", CppTokenType.Keyword },
+         { "alignof", CppTokenType.Keyword },
+         { "and", CppTokenType.Keyword },
+         { "and_eq", CppTokenType.Keyword },
+         { "asm", CppTokenType.Keyword },
+         { "atomic_cancel", CppTokenType.Keyword },
+         { "atomic_commit", CppTokenType.Keyword },
+         { "atomic_noexcept", CppTokenType.Keyword },
+         { "auto", CppTokenType.Keyword },
+         { "bitand", CppTokenType.Keyword },
+         { "bitor", CppTokenType.Keyword },
+         { "bool", CppTokenType.Keyword },
+         { "break", CppTokenType.Keyword },
+         { "case", CppTokenType.Keyword },
+         { "catch", CppTokenType.Keyword },
+         { "char", CppTokenType.Keyword },
+         { "char8_t", CppTokenType.Keyword },
+         { "char16_t", CppTokenType.Keyword },
+         { "char32_t", CppTokenType.Keyword },
+         { "class", CppTokenType.Keyword },
+         { "compl", CppTokenType.Keyword },
+         { "concept", CppTokenType.Keyword },
+         { "const", CppTokenType.Keyword },
+         { "consteval", CppTokenType.Keyword },
+         { "constexpr", CppTokenType.Keyword },
+         { "constinit", CppTokenType.Keyword },
+         { "const_cast", CppTokenType.Keyword },
+         { "continue", CppTokenType.Keyword },
+         { "co_await", CppTokenType.Keyword },
+         { "co_return", CppTokenType.Keyword },
+         { "co_yield", CppTokenType.Keyword },
+         { "decltype", CppTokenType.Keyword },
+         { "default", CppTokenType.Keyword },
+         { "delete", CppTokenType.Keyword },
+         { "do", CppTokenType.Keyword },
+         { "double", CppTokenType.Keyword },
+         { "dynamic_cast", CppTokenType.Keyword },
+         { "else", CppTokenType.Keyword },
+         { "enum", CppTokenType.Keyword },
+         { "explicit", CppTokenType.Keyword },
+         { "export", CppTokenType.Keyword },
+         { "extern", CppTokenType.Keyword },
+         { "float", CppTokenType.Keyword },
+         { "for", CppTokenType.Keyword },
+         { "friend", CppTokenType.Keyword },
+         { "goto", CppTokenType.Keyword },
+         { "if", CppTokenType.Keyword },
+         { "inline", CppTokenType.Keyword },
+         { "int", CppTokenType.Keyword },
+         { "long", CppTokenType.Keyword },
+         { "mutable", CppTokenType.Keyword },
+         { "namespace", CppTokenType.Keyword },
+         { "new", CppTokenType.Keyword },
+         { "noexcept", CppTokenType.Keyword },
+         { "not", CppTokenType.Keyword },
+         { "not_eq", CppTokenType.Keyword },
+         { "operator", CppTokenType.Keyword },
+         { "or", CppTokenType.Keyword },
+         { "or_eq", CppTokenType.Keyword },
+         { "private", CppTokenType.Keyword },
+         { "protected", CppTokenType.Keyword },
+         { "public", CppTokenType.Keyword },
+         { "reflexpr", CppTokenType.Keyword },
+         { "register", CppTokenType.Keyword },
+         { "reinterpret_cast", CppTokenType.Keyword },
+         { "requires", CppTokenType.Keyword },
+         { "return", CppTokenType.Keyword },
+         { "short", CppTokenType.Keyword },
+         { "signed", CppTokenType.Keyword },
+         { "sizeof", CppTokenType.Keyword },
+         { "static", CppTokenType.Keyword },
+         { "static_assert", CppTokenType.Keyword },
+         { "static_cast", CppTokenType.Keyword },
+         { "struct", CppTokenType.Keyword },
+         { "switch", CppTokenType.Keyword },
+         { "synchronized", CppTokenType.Keyword },
+         { "template", CppTokenType.Keyword },
+         { "this", CppTokenType.Keyword },
+         { "thread_local", CppTokenType.Keyword },
+         { "throw", CppTokenType.Keyword },
+         { "try", CppTokenType.Keyword },
+         { "typedef", CppTokenType.Keyword },
+         { "typeid", CppTokenType.Keyword },
+         { "typename", CppTokenType.Keyword },
+         { "union", CppTokenType.Keyword },
+         { "unsigned", CppTokenType.Keyword },
+         { "using", CppTokenType.Keyword },
+         { "virtual", CppTokenType.Keyword },
+         { "void", CppTokenType.Keyword },
+         { "volatile", CppTokenType.Keyword },
+         { "wchar_t", CppTokenType.Keyword },
+         { "while", CppTokenType.Keyword },
+         { "xor", CppTokenType.Keyword },
+         { "xor_eq", CppTokenType.Keyword },
+         { "true", CppTokenType.BooleanLiteral },
+         { "false", CppTokenType.BooleanLiteral },
+         { "nullptr", CppTokenType.PointerLiteral },
+         { "UCLASS", CppTokenType.EngineHeader },
+         { "UENUM", CppTokenType.EngineHeader },
+         { "USTRUCT", CppTokenType.EngineHeader },
+         { "UMETHOD", CppTokenType.EngineHeader },
+         { "UMETA", CppTokenType.EngineHeader },
+         { "UPROPERTY", CppTokenType.EngineHeader },
+         { "UFUNCTION", CppTokenType.EngineHeader }
+      };
 
       s_AllSymbols =
       [
@@ -187,9 +188,14 @@ internal class CppLexicalAnalyzer
          "?",
       ];
 
-      s_SymbolCharacters = s_AllSymbols!
-       .SelectMany(symbol => symbol)
-       .ToHashSet();
+      s_SymbolCharacters = [];
+      foreach (StringView symbol in s_AllSymbols)
+      {
+         foreach (char c in symbol)
+         {
+            s_SymbolCharacters.Add(c);
+         }
+      }
    }
 
    public CppLexicalAnalysis Analyze()
@@ -197,7 +203,7 @@ internal class CppLexicalAnalyzer
       List<CppToken> tokens = new(20 / m_SourceCode.Length);
       List<int> engineHeaderTokenIndices = new(5);
 
-      CurrentPosition = 0;
+      Position = 0;
 
       while (!IsEndOfFile)
       {
@@ -221,7 +227,7 @@ internal class CppLexicalAnalyzer
 
                // it will also consume the current character
                TryConsumeSymbol(out int operatorStart, out int operatorLength);
-               tokens.Add(new(operatorStart, operatorLength, CppTokenType.Symbol));
+               AddToken(tokens, CppTokenType.Symbol, operatorStart, operatorLength);
                break;
             }
 
@@ -286,63 +292,63 @@ internal class CppLexicalAnalyzer
             {
                // it will also consume the current character
                TryConsumeSymbol(out int operatorStart, out int operatorLength);
-               tokens.Add(new(operatorStart, operatorLength, CppTokenType.Symbol));
+               AddToken(tokens, CppTokenType.Symbol, operatorStart, operatorLength);
                break;
             }
 
             case '.':
             {
-               int startPosition = CurrentPosition;
+               int start = Position;
                if (TryConsumeNumberLiteral())
                {
-                  tokens.Add(new(startPosition, CurrentPosition - startPosition, CppTokenType.NumericLiteral));
+                  AddToken(tokens, CppTokenType.Symbol, start, Position - start);
                   break;
                }
 
                // it will always return true since the dot is a symbol
                TryConsumeSymbol(out int operatorStart, out int operatorLength);
-               tokens.Add(new(operatorStart, operatorLength, CppTokenType.Symbol));
+               AddToken(tokens, CppTokenType.Symbol, start, operatorLength);
                break;
             }
 
             case '"':
             {
-               int startPosition = CurrentPosition;
+               int start = Position;
                ConsumeStringLiteral(false);
-               tokens.Add(new(startPosition, CurrentPosition - startPosition, CppTokenType.StringLiteral));
+               AddToken(tokens, CppTokenType.StringLiteral, start, Position - start);
                break;
             }
 
             case >= '0' and <= '9':
             {
-               int startPosition = CurrentPosition;
+               int start = Position;
                if (TryConsumeNumberLiteral())
                {
-                  tokens.Add(new(startPosition, CurrentPosition - startPosition, CppTokenType.NumericLiteral));
+                  AddToken(tokens, CppTokenType.NumericLiteral, start, Position - start);
                   break;
                }
 
-               throw new CppIllFormedCodeException(CurrentPosition, "Unexpected character.");
+               throw new CppIllFormedCodeException(Position, "Unexpected character.");
             }
 
             case '_':
             case >= 'a' and <= 'z':
             case >= 'A' and <= 'Z':
             {
-               int startPosition = CurrentPosition;
+               int start = Position;
                TryConsumeIdentifier(out ReadOnlySpan<char> identifier);
 
                if (TryConsume('"'))
                {
                   ConsumeStringLiteral(identifier[^-1] == 'R');
-                  tokens.Add(new(startPosition, CurrentPosition - startPosition, CppTokenType.StringLiteral));
+                  AddToken(tokens, CppTokenType.StringLiteral, start, Position - start);
                   break;
                }
 
                if (TryConsume('\''))
                {
                   ConsumeCharLiteral();
-                  tokens.Add(new(startPosition, CurrentPosition - startPosition, CppTokenType.CharacterLiteral));
+                  AddToken(tokens, CppTokenType.CharacterLiteral, start, Position - start);
                   break;
                }
 
@@ -352,19 +358,30 @@ internal class CppLexicalAnalyzer
                   engineHeaderTokenIndices.Add(tokens.Count);
                }
 
-               tokens.Add(new(startPosition, CurrentPosition - startPosition, type));
+               AddToken(tokens, type, start, Position - start);
                break;
             }
 
             default:
             {
-               throw new CppIllFormedCodeException(CurrentPosition, "Unexpected character.");
+               throw new CppIllFormedCodeException(Position, "Unexpected character.");
             }
          }
       }
 
-      tokens.Add(new(EndOfFilePosition, 0, CppTokenType.EndOfFile));
+      AddToken(tokens, CppTokenType.EndOfFile, EndOfFilePosition, 0);
       return new(tokens, engineHeaderTokenIndices, m_SourceCode);
+   }
+
+   private void AddToken(List<CppToken> tokens, CppTokenType type, int start, int length)
+   {
+      tokens.Add(new
+      (
+         type: type,
+         startPosition: start,
+         contentView: m_SourceCodeMemory.Slice(start, length),
+         index: tokens.Count
+      ));
    }
 
    internal bool TryConsumeNumberLiteral()
@@ -374,7 +391,7 @@ internal class CppLexicalAnalyzer
 
    internal bool TryConsumeNumericLiteralDigits(int numericBase)
    {
-      int start = CurrentPosition;
+      int start = Position;
       while (!IsEndOfFile)
       {
          int digit = AsciiHexDigitToInt(CurrentCharacter);
@@ -388,37 +405,17 @@ internal class CppLexicalAnalyzer
 
       if (!IsEndOfFile && char.IsDigit(CurrentCharacter))
       {
-         throw new CppIllFormedCodeException(CurrentPosition, "Invalid digit base in number literal.");
+         throw new CppIllFormedCodeException(Position, "Invalid digit base in number literal.");
       }
 
-      return CurrentPosition != start;
-   }
-
-   internal static KeyValuePair<int, (string Identifier, CppTokenType Type)> CreateSpecialIdentifierEntry(string identifier, CppTokenType type)
-   {
-      if (type == CppTokenType.EngineHeader && !identifier.StartsWith('U'))
-      {
-         throw new ArgumentException("Engine identifiers must start with 'U'.");
-      }
-
-      return new(identifier.GetHashCode(), (identifier, type));
-   }
-
-   private static KeyValuePair<int, string> CreateEngineIdentifierEntry(string identifier)
-   {
-      if (!identifier.StartsWith('U'))
-      {
-         throw new ArgumentException("Engine identifiers must start with 'U'.");
-      }
-
-      return new(identifier.GetHashCode(), identifier);
+      return Position != start;
    }
 
    internal void ConsumeCharLiteral()
    {
       if (!TryConsume('\''))
       {
-         throw new CppIllFormedCodeException(CurrentPosition, "Invalid character literal.");
+         throw new CppIllFormedCodeException(Position, "Invalid character literal.");
       }
 
       if (TryConsume('\\'))
@@ -453,21 +450,21 @@ internal class CppLexicalAnalyzer
 
                if (!TryConsume('\''))
                {
-                  throw new CppIllFormedCodeException(CurrentPosition, "Unterminated character literal.");
+                  throw new CppIllFormedCodeException(Position, "Unterminated character literal.");
                }
 
                break;
             }
             default:
             {
-               throw new CppIllFormedCodeException(CurrentPosition, "Invalid escape sequence.");
+               throw new CppIllFormedCodeException(Position, "Invalid escape sequence.");
             }
          }
 
          ConsumeCharacter();
          if (!TryConsume('\''))
          {
-            throw new CppIllFormedCodeException(CurrentPosition, "Unterminated character literal.");
+            throw new CppIllFormedCodeException(Position, "Unterminated character literal.");
          }
       }
    }
@@ -502,7 +499,7 @@ internal class CppLexicalAnalyzer
    {
       if (!TryConsume('"'))
       {
-         throw new CppIllFormedCodeException(CurrentPosition, "Invalid raw string literal.");
+         throw new CppIllFormedCodeException(Position, "Invalid raw string literal.");
       }
 
       int quoteCount = 1;
@@ -519,34 +516,34 @@ internal class CppLexicalAnalyzer
       TryConsumeIdentifier(out ReadOnlySpan<char> delimiter);
       if (!TryConsume('('))
       {
-         throw new CppIllFormedCodeException(CurrentPosition, "Invalid raw string literal.");
+         throw new CppIllFormedCodeException(Position, "Invalid raw string literal.");
       }
 
       while (!IsEndOfFile)
       {
-         int closeDelimiterStart = CurrentPosition;
+         int closeDelimiterStart = Position;
          if (TryConsume(')') && TryConsume(delimiter) && TryConsume('"', quoteCount))
          {
             return;
          }
 
-         CurrentPosition = closeDelimiterStart;
+         Position = closeDelimiterStart;
          ConsumeCharacter();
       }
 
-      throw new CppIllFormedCodeException(CurrentPosition, "Unterminated string literal.");
+      throw new CppIllFormedCodeException(Position, "Unterminated string literal.");
    }
 
    internal void ConsumeStringLiteral()
    {
       if (!TryConsume('"'))
       {
-         throw new CppIllFormedCodeException(CurrentPosition, "Invalid string literal.");
+         throw new CppIllFormedCodeException(Position, "Invalid string literal.");
       }
 
       while (!IsEndOfFile)
       {
-         if (CurrentCharacter == '"' && !IsCharacterAt(CurrentPosition - 1, '\\'))
+         if (CurrentCharacter == '"' && !IsCharacterAt(Position - 1, '\\'))
          {
             ConsumeCharacter();
             return;
@@ -558,15 +555,15 @@ internal class CppLexicalAnalyzer
 
    internal bool TryConsumeSymbol(out int start, out int length)
    {
-      start = CurrentPosition;
-      length = Math.Min(3, EndOfFilePosition - CurrentPosition);
+      start = Position;
+      length = Math.Min(3, EndOfFilePosition - Position);
 
       while (length > 0)
       {
          ReadOnlySpan<char> symbol = m_SourceCode.AsSpan().Slice(start, length);
          if (s_AllSymbols.Contains(symbol))
          {
-            CurrentPosition += length;
+            Position += length;
             return true;
          }
 
@@ -601,20 +598,14 @@ internal class CppLexicalAnalyzer
       }
    }
 
-   internal static CppTokenType GetIdentifierTokenType(ReadOnlySpan<char> identifier)
+   internal static CppTokenType GetIdentifierTokenType(StringView identifier)
    {
-      int hashCode = string.GetHashCode(identifier);
-      if (!s_AllCppKeywords.TryGetValue(hashCode, out (string Identifier, CppTokenType Type) entry))
+      if (s_SpecialIdentifierTokenTypes.TryGetValue(identifier, out CppTokenType specialTokenType))
       {
-         return CppTokenType.Identifier;
+         return specialTokenType;
       }
 
-      if (!MemoryExtensions.Equals(entry.Identifier.AsSpan(), identifier, StringComparison.Ordinal))
-      {
-         return CppTokenType.Identifier;
-      }
-
-      return entry.Type;
+      return CppTokenType.Identifier;
    }
 
    internal bool TryConsumeIdentifier(out ReadOnlySpan<char> identifier)
@@ -626,7 +617,7 @@ internal class CppLexicalAnalyzer
 
    internal bool TryConsumeIdentifier(out int start, out int length)
    {
-      start = CurrentPosition;
+      start = Position;
       length = 0;
       if (IsEndOfFile || CurrentCharacter != '_' && !char.IsLetter(CurrentCharacter))
       {
@@ -638,7 +629,7 @@ internal class CppLexicalAnalyzer
          ConsumeCharacter();
       }
 
-      length = CurrentPosition - start;
+      length = Position - start;
       return true;
    }
 
@@ -665,7 +656,7 @@ internal class CppLexicalAnalyzer
          return false;
       }
 
-      int openCommendPosition = CurrentPosition;
+      int openCommendPosition = Position;
       while (!IsEndOfFile)
       {
          if (TryConsume("*/"))
@@ -676,7 +667,7 @@ internal class CppLexicalAnalyzer
          ConsumeCharacter();
       }
 
-      throw new CppIllFormedCodeException(CurrentPosition, "Unterminated comment");
+      throw new CppIllFormedCodeException(Position, "Unterminated comment");
    }
 
    internal bool TryConsumeSingleNumericSign()
@@ -714,13 +705,13 @@ internal class CppLexicalAnalyzer
 
    internal bool TryConsume(char c, int count)
    {
-      int newPosition = CurrentPosition;
+      int newPosition = Position;
       while (newPosition < EndOfFilePosition && m_SourceCode[newPosition] == c)
       {
          newPosition++;
-         if (newPosition - CurrentPosition == count)
+         if (newPosition - Position == count)
          {
-            CurrentPosition = newPosition;
+            Position = newPosition;
             return true;
          }
       }
@@ -730,13 +721,13 @@ internal class CppLexicalAnalyzer
 
    internal bool TryConsume(ReadOnlySpan<char> token)
    {
-      int newPosition = CurrentPosition;
-      while (newPosition < EndOfFilePosition && m_SourceCode[newPosition] == token[newPosition - CurrentPosition])
+      int newPosition = Position;
+      while (newPosition < EndOfFilePosition && m_SourceCode[newPosition] == token[newPosition - Position])
       {
          newPosition++;
-         if (newPosition - CurrentPosition == token.Length)
+         if (newPosition - Position == token.Length)
          {
-            CurrentPosition = newPosition;
+            Position = newPosition;
             return true;
          }
       }
@@ -746,13 +737,13 @@ internal class CppLexicalAnalyzer
 
    internal bool TryConsumeIgnoreCase(ReadOnlySpan<char> token)
    {
-      int newPosition = CurrentPosition;
-      while (newPosition < EndOfFilePosition && char.ToUpper(m_SourceCode[newPosition]) == char.ToUpper(token[newPosition - CurrentPosition]))
+      int newPosition = Position;
+      while (newPosition < EndOfFilePosition && char.ToUpper(m_SourceCode[newPosition]) == char.ToUpper(token[newPosition - Position]))
       {
          newPosition++;
-         if (newPosition - CurrentPosition == token.Length)
+         if (newPosition - Position == token.Length)
          {
-            CurrentPosition = newPosition;
+            Position = newPosition;
             return true;
          }
       }
@@ -772,9 +763,9 @@ internal class CppLexicalAnalyzer
 
    internal bool PeekNextCharacter(out char character)
    {
-      if (CurrentPosition + 1 < EndOfFilePosition)
+      if (Position + 1 < EndOfFilePosition)
       {
-         character = m_SourceCode[CurrentPosition + 1];
+         character = m_SourceCode[Position + 1];
          return true;
       }
 
@@ -798,9 +789,9 @@ internal class CppLexicalAnalyzer
    internal bool TryConsumeNewLineCharacters()
    {
       // CRLF
-      if (CurrentCharacter == '\r' && IsCharacterAt(CurrentPosition + 1, '\n'))
+      if (CurrentCharacter == '\r' && IsCharacterAt(Position + 1, '\n'))
       {
-         CurrentPosition += 2;
+         Position += 2;
          return true;
       }
 
@@ -822,14 +813,14 @@ internal class CppLexicalAnalyzer
 
    internal void ConsumeCharacter()
    {
-      CurrentPosition++;
+      Position++;
    }
 
    private void ValidateIsNotEndOfFile(string message)
    {
       if (IsEndOfFile)
       {
-         throw new CppIllFormedCodeException(CurrentPosition, message);
+         throw new CppIllFormedCodeException(Position, message);
       }
    }
 

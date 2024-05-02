@@ -67,9 +67,8 @@
     <Compile Include="Platform.cs" />
     <Compile Include="Container\Container.cs" />
     <Compile Include="Container\InjectAttribute.cs" />
-    <Compile Include="Range.cs" />
     <Compile Include="ScopedLogger.cs" />
-    <Compile Include="StringHashSet.cs" />
+    <Compile Include="StringView.cs" />
     <Compile Include="TypeUtility.cs" />
     <Compile Include="Version.cs" />
     <Compile Include="VisualStudioProductInfo.cs" />

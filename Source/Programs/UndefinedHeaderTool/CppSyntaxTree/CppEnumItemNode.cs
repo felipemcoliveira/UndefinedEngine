@@ -1,30 +1,10 @@
 using System.Diagnostics;
-
-using Range = UndefinedCore.Range;
+using UndefinedCore;
 
 namespace UndefinedHeader.SyntaxTree;
 
-[DebuggerDisplay("UENUM {Identifier,nq}")]
-public class CppEnumItemNode
-   (
-      Range tokensRange,
-      CppToken identifierToken,
-      CppLexicalAnalysis lexicalAnalysis
-   )
-   : CppSyntaxNode(tokensRange, lexicalAnalysis)
+[DebuggerDisplay("UENUM Item {Name,nq}")]
+public class CppEnumItemNode(StringView name) : CppSyntaxNode
 {
-   public CppToken IdentifierToken { get; } = identifierToken;
-
-   public string Identifier
-   {
-      get
-      {
-         string identifier = LexicalAnalysis.GetTokenValue(IdentifierToken);
-         CppEnumNode enumNode = (CppEnumNode)Parent!;
-
-         Debug.Assert(enumNode != null);
-
-         return $"{enumNode.Identifier}::{identifier}";
-      }
-   }
+   public StringView Name { get; private set; } = name;
 }
