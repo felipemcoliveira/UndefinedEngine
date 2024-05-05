@@ -1,5 +1,0 @@
-C:\Users\PC\Documents\Projects\cpp\UndefinedEngine\Source\..Intermediate\DotNET\Shared\Debug\BandoWare.Core.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\PC\Documents\Projects\cpp\UndefinedEngine\Source\..Intermediate\DotNET\Shared\Debug\BandoWare.Core.AssemblyInfoInputs.cache
-C:\Users\PC\Documents\Projects\cpp\UndefinedEngine\Source\..Intermediate\DotNET\Shared\Debug\BandoWare.Core.AssemblyInfo.cs
-C:\Users\PC\Documents\Projects\cpp\UndefinedEngine\Source\..Intermediate\DotNET\Shared\Debug\BandoWare.Core.csproj.CoreCompileInputs.cache
-C:\Users\PC\Documents\Projects\cpp\UndefinedEngine\Source\..Intermediate\DotNET\Shared\Debug\BandoWare.Core.sourcelink.json
