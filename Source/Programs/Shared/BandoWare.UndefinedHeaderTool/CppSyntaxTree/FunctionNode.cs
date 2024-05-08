@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-[DebuggerDisplay("UFUNCTION {Identifier,nq}")]
+[DebuggerDisplay("UFUNCTION {Name,nq}")]
 public class FunctionNode(StringView name) : SyntaxNode
 {
    public StringView Name { get; } = name;
