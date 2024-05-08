@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace BandoWare.Core;
 
+[DebuggerDisplay("{ToString(),nq}")]
 public struct StringView : IEquatable<StringView>, IComparable<StringView>
 {
    public static readonly StringView Empty = new(string.Empty);

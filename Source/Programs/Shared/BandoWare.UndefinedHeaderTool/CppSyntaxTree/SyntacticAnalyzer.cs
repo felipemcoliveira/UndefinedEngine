@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-internal partial class SyntacticAnalyzer
+public partial class SyntacticAnalyzer
 {
    private Token CurrentToken => m_Tokens[m_Position];
    private TokenType CurrentTokenType => CurrentToken.Type;
@@ -143,7 +143,7 @@ internal partial class SyntacticAnalyzer
 
       bool hasImportExportAttribute = AcceptImportExportClassAttribute();
 
-      StringView classIdentifier = CurrentTokenValue;
+      StringView className = CurrentTokenValue;
       if (hasImportExportAttribute)
       {
          ExpectFormat(TokenType.Identifier, "Expected identifier after \"{0}\" keyword.", m_Tokens[m_Position - 1].ValueView);
@@ -166,7 +166,7 @@ internal partial class SyntacticAnalyzer
          throw CreateIllFormedCodeException(CurrentTokenPosition, "UCLASS should be used only with class definition.");
       }
 
-      ClassNode classNode = new(CurrentTokenValue);
+      ClassNode classNode = new(className);
       classNode.AddChild(engineHeaderNode);
 
       ExpectExact(TokenType.Symbol, "{", "Expected \"{\" after class declaration");
@@ -245,29 +245,33 @@ internal partial class SyntacticAnalyzer
          functionSpecifiers.Add(specifier);
       }
 
+
       SkipUntil("(", "{(<", ">)}");
+
+      Token functionNameToken = m_Tokens[m_Position - 1];
+
+      if (functionNameToken.Type != TokenType.Identifier)
+      {
+         throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected function name.");
+      }
+
       int identifierTokenIndex = m_Position - 1;
       if (!IsEndOfFile && m_Tokens[identifierTokenIndex].Type != TokenType.Identifier)
       {
          throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected function name.");
       }
 
-      StringView functionIdentifier = CurrentTokenValue;
-      FunctionNode functionNode = new(functionIdentifier);
+      FunctionNode functionNode = new(functionNameToken.ValueView);
 
       functionNode.AddChild(engineHeaderNode);
       functionNode.IsVirtual = functionSpecifiers.Contains("virtual");
       functionNode.IsStatic = functionSpecifiers.Contains("static");
       functionNode.IsConstExpr = functionSpecifiers.Contains("constexpr");
 
-      ExpectExact(TokenType.Symbol, "(", "Expected \"(\" after function name.");
-
       foreach (FunctionParameterNode parameter in ConsumeFunctionParameters())
       {
          functionNode.AddChild(parameter);
       }
-
-      ExpectExact(TokenType.Symbol, ")", "Expected \")\" after parameters list.");
 
       SkipUntil("{;", "{(<", ">)}");
 
@@ -282,15 +286,46 @@ internal partial class SyntacticAnalyzer
 
    private IEnumerable<FunctionParameterNode> ConsumeFunctionParameters()
    {
+      ExpectExact(TokenType.Symbol, "(", "Expected \"(\" after function name.");
+
       if (AcceptKeyword("void"))
       {
+         ExpectExact(TokenType.Symbol, ")", "Expected \")\" after parameter list.");
          yield break;
       }
 
+      int paremeterIndex = 0;
       while (!IsEndOfFile)
       {
+         if (AcceptExact(TokenType.Symbol, ")"))
+         {
+            yield break;
+         }
 
+         if (AcceptExact(TokenType.Symbol, ","))
+         {
+            continue;
+         }
+
+         yield return ConsumeFunctionParameter(paremeterIndex++);
       }
+
+      throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected \")\" after parameter list.");
+   }
+
+   private FunctionParameterNode ConsumeFunctionParameter(int parameterIndex)
+   {
+      // this is gonna be a very naive solution: we're just gonna skip
+      // until get where we expect the parameter identifier.
+      SkipUntil("=,)", "{(<", ">)}");
+      m_Position--;
+
+      Expect(TokenType.Identifier, out StringView parameterName, "Expected parameter identifier.");
+
+      // skip until we get to the next parameter or the closing parenthesis
+      SkipUntil(",)", "{(<", ">)}");
+
+      return new FunctionParameterNode(parameterName, parameterIndex);
    }
 
    private bool AcceptAny(TokenType validTokenTypes, HashSet<StringView> set, out StringView acceptedValue)
@@ -463,7 +498,7 @@ internal partial class SyntacticAnalyzer
 
    private bool AcceptHeaderSpecifier(out HeaderSpecifierNode? specifierNode)
    {
-      if (IsEndOfFile || Accept(TokenType.Identifier, out StringView specifierName))
+      if (IsEndOfFile || !Accept(TokenType.Identifier, out StringView specifierName))
       {
          specifierNode = null;
          return false;
@@ -656,7 +691,7 @@ internal partial class SyntacticAnalyzer
             if (openDelimiters[i] == currentTokenValue[0])
             {
                isOpenDelimiter = true;
-               m_DelimiterStack.Push(closeDelimiters[i]);
+               m_DelimiterStack.Push(closeDelimiters[^-i]);
             }
          }
 
