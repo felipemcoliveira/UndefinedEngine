@@ -45,13 +45,12 @@
     <None Remove="Premake\**" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BuildToolMode.cs" />
-    <Compile Include="GenerateProjectFilesToolMode.cs" />
-    <Compile Include="HelpToolMode.cs" />
-    <Compile Include="ToolMode.cs" />
-    <Compile Include="ToolModeAttribute.cs" />
-    <Compile Include="ToolModeOptions.cs" />
-    <Compile Include="ToolModeUtility.cs" />
+    <Compile Include="ToolModes\BuildToolMode.cs" />
+    <Compile Include="ToolModes\GenerateProjectFilesToolMode.cs" />
+    <Compile Include="ToolModes\HelpToolMode.cs" />
+    <Compile Include="ToolModes\ToolMode.cs" />
+    <Compile Include="ToolModes\ToolModeOptions.cs" />
+    <Compile Include="ToolModes\ToolModeUtility.cs" />
     <Compile Include="UndefinedBuildTool.cs" />
   </ItemGroup>
   <ItemGroup>

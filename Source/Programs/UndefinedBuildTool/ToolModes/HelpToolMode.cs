@@ -1,14 +1,22 @@
 ﻿using BandoWare.Core;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace BandoWare.UndefinedBuildTool;
 
 [ToolMode("Help")]
 public class HelpToolMode(CommandLineArguments commandLineArguments) : ToolMode
 {
+   private static readonly ValueUsageFormatHandler[] s_ValueUsageFormatHandlers =
+   [
+      new FunctionValueUsageFormatHandler(),
+      new EnumValueUsageFormatHandler()
+   ];
+
    public override void Execute()
    {
       Console.WriteLine("Usage:");
@@ -45,40 +53,137 @@ public class HelpToolMode(CommandLineArguments commandLineArguments) : ToolMode
    private static string FormatValueUsage(CommandTarget argumentTarget)
    {
       string valueUsage = argumentTarget.Attribute.ValueUsage!;
-      if (valueUsage[0] == '$')
-      {
-         if (valueUsage == "$EnumValues")
-            return FormatEnumValues(argumentTarget);
-         else if (valueUsage.StartsWith("$StaticField:"))
-         {
-            return FormatStaticFieldOptions(argumentTarget, valueUsage);
-         }
+      int position = 0;
 
-         throw new InvalidOperationException($"Invalid value usage: {valueUsage}");
+      TextConsumer textConsumer = new(ref position, valueUsage);
+      if (TryGetFormattedValueUsage(argumentTarget, ref textConsumer, out string? formattedValueUsage))
+      {
+         return $"<{formattedValueUsage}>";
       }
 
       return valueUsage;
    }
 
-   private static string FormatStaticFieldOptions(CommandTarget argumentTarget, string valueUsage)
+   private static bool TryGetFormattedValueUsage
+   (
+      CommandTarget argumentTarget,
+      ref TextConsumer textConsumer,
+      [NotNullWhen(true)] out string? output
+   )
    {
-      string[] parts = valueUsage.Split(':');
-      string fieldName = parts[1];
-      Type type = argumentTarget.MemberInfo.DeclaringType!;
-      FieldInfo? field = type.GetField(fieldName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-      if (field == null)
-         throw new InvalidOperationException($"Failed to find static field {fieldName} in type {type.Name}");
+      if (!textConsumer.TryConsume('$'))
+      {
+         output = null;
+         return false;
+      }
 
-      if (field.FieldType != typeof(string[]))
-         throw new InvalidOperationException($"Static field {fieldName} in type {type} is not an array of string.");
+      output = null!;
+      bool isValidIdentifier = false;
+      foreach (ValueUsageFormatHandler handler in s_ValueUsageFormatHandlers)
+      {
+         if (textConsumer.TryConsume(handler.Identifier))
+         {
+            isValidIdentifier = true;
+            try
+            {
+               output = handler.Format(argumentTarget, ref textConsumer)!;
 
-      string[] values = (string[])field.GetValue(null)!;
-      return $"<{string.Join(" | ", values.Select(v => $"\"{v}\""))}>";
+            }
+            catch (Exception e)
+            {
+               output = $"FORMAT_ERROR({e.Message})";
+               throw;
+            }
+
+            break;
+         }
+      }
+
+      if (!isValidIdentifier)
+      {
+         throw new InvalidOperationException($"Invalid value usage format: Unknown format at position {textConsumer.Position}");
+      }
+
+      if (!textConsumer.IsEndOfText)
+      {
+         throw new InvalidOperationException($"Invalid value usage format: Unexpected characters at position {textConsumer.Position}");
+      }
+
+      return true;
    }
+}
 
-   private static string FormatEnumValues(CommandTarget argumentTarget)
+public abstract class ValueUsageFormatHandler
+{
+   public abstract string Identifier { get; }
+   public abstract string Format(CommandTarget commandTarget, ref TextConsumer textConsumer);
+}
+
+public class FunctionValueUsageFormatHandler : ValueUsageFormatHandler
+{
+   public override string Identifier => "Function";
+
+   public override string Format(CommandTarget commandTarget, ref TextConsumer textConsumer)
    {
-      string[] names = Enum.GetNames(TypeUtility.GetUderlyingType(argumentTarget.Type));
-      return $"<{string.Join(" | ", names.Select(v => $"\"{v}\""))}>";
+      Type type = TypeUtility.GetUderlyingType(commandTarget.Type);
+
+      if (!textConsumer.TryConsume(':'))
+      {
+         throw new InvalidOperationException($"Invalid value usage format: Expected ':' at position {textConsumer.Position}");
+      }
+
+      if (!textConsumer.TryConsumeIdentifier(out string? methodName))
+      {
+         throw new InvalidOperationException($"Invalid value usage format: Expected method name at position {textConsumer.Position}");
+      }
+
+      MethodInfo? method = commandTarget.MemberInfo.DeclaringType!.GetMethod(methodName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+      if (method == null)
+      {
+         throw new InvalidOperationException($"Failed to find method {methodName} in type {type.Name}");
+      }
+
+      if (method.ReturnType != typeof(string))
+      {
+         throw new InvalidOperationException($"Method {methodName} in type {type} does not return a string.");
+      }
+
+      ParameterInfo[] parameters = method.GetParameters();
+      if (parameters.Length == 0)
+      {
+         return (string)method.Invoke(null, null)!;
+      }
+
+      if (parameters.Length > 1)
+      {
+         throw new InvalidOperationException($"Method {methodName} in type {type} has too many parameters.");
+      }
+
+      if (parameters[0].ParameterType != typeof(CommandTarget))
+      {
+         throw new InvalidOperationException($"Method {methodName} in type {type} first parameter is not of type {nameof(CommandTarget)}.");
+      }
+
+      return (string)method.Invoke(null, new object[] { commandTarget })!;
+   }
+}
+
+public class EnumValueUsageFormatHandler : ValueUsageFormatHandler
+{
+   public override string Identifier => "EnumValues";
+
+   public override string Format(CommandTarget commandTarget, ref TextConsumer textConsumer)
+   {
+      Type type = TypeUtility.GetUderlyingType(commandTarget.Type);
+
+      if (!type.IsEnum)
+      {
+         throw new InvalidOperationException($"Invalid value usage format: EnumValues can only be used with enum types.");
+      }
+
+      StringBuilder output = new();
+      string[] names = Enum.GetNames(type);
+      int outputStart = output.Length;
+      return string.Join(" | ", names.Select(v => $"\"{v}\""));
    }
 }

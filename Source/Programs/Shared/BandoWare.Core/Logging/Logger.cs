@@ -34,7 +34,7 @@ public class Logger : ILogger, IDisposable
    /// Path to the log file. If specified, logs will be written to this file.
    /// </summary>
    [CommandLine("-LogOutput", ValueUsage = "<FilePath>", Description = "Path to the log file. If specified, logs will be written to this file.")]
-   public string? LogFilePath { get; set; } = "/UndefinedHeaderTool.txt";
+   public string? LogFilePath { get; set; } = "./UndefinedHeaderTool.txt";
 
    /// <summary>
    /// Indicates whether timestamps should be included in each log entry.

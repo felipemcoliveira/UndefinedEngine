@@ -1,11 +1,10 @@
 ﻿using BandoWare.Core;
+using System.Linq;
 
 namespace BandoWare.UndefinedBuildTool;
 
 public class ToolModeOptions
 {
-   private readonly static string[] s_ModeOptions = ToolModeUtility.GetAllToolModeNames();
-
    [CommandLine
    (
       "-Build",
@@ -27,8 +26,14 @@ public class ToolModeOptions
    [CommandLine
    (
       "-Mode",
-      ValueUsage = $"$StaticField:{nameof(s_ModeOptions)}",
+      ValueUsage = $"$Function:{nameof(GetModeValueUsage)}",
       Description = "Generates project files."
    )]
    public string ToolMode { get; set; } = "Help";
+
+   private static string GetModeValueUsage()
+   {
+      string[] toolModeNames = ToolModeUtility.GetAllToolModeNames();
+      return string.Join(" | ", toolModeNames.Select(v => $"\"{v}\""));
+   }
 }
