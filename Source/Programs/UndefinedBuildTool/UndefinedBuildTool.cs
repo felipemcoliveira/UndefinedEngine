@@ -7,7 +7,6 @@ internal class UndefinedBuildTool
 {
    public static void Main(string[] args)
    {
-      Console.Title = nameof(UndefinedBuildTool);
       CommandLineArguments commandLineArguments;
       try
       {
@@ -30,10 +29,10 @@ internal class UndefinedBuildTool
       container.Set<CommandLineArguments>(commandLineArguments);
       container.Set<ILogger>(logger);
 
-      TryExecuteToolMode(commandLineArguments, logger, container);
+      ExecuteToolMode(commandLineArguments, logger, container);
    }
 
-   private static void TryExecuteToolMode(CommandLineArguments commandLineArguments, ILogger logger, Container container)
+   private static void ExecuteToolMode(CommandLineArguments commandLineArguments, ILogger logger, Container container)
    {
       ToolModeOptions toolModeOptions = new();
       commandLineArguments.ApplyTo(toolModeOptions);

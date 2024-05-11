@@ -7,13 +7,13 @@ using System.Text.RegularExpressions;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-public partial class SyntacticAnalyzer
+internal partial class SyntaxParser
 {
    private Token CurrentToken => m_Tokens[m_Position];
    private TokenType CurrentTokenType => CurrentToken.Type;
    private bool IsEndOfFile => CurrentToken.Type == TokenType.EndOfFile;
-   private StringView CurrentTokenValue => CurrentToken.ValueView;
-   private int CurrentTokenPosition => CurrentToken.ContentPosition;
+   private StringView CurrentTokenValue => CurrentToken.Text;
+   private int CurrentTokenTextPosition => CurrentToken.TextPosition;
 
    private static readonly HashSet<StringView> s_FunctionSpecifiers =
    [
@@ -88,7 +88,7 @@ public partial class SyntacticAnalyzer
    private List<Token> m_Tokens;
    private List<int> m_EngineHeaderTokenIndices;
 
-   public SyntacticAnalyzer(TokenizeResult tokenizeResult)
+   public SyntaxParser(TokenizeResult tokenizeResult)
    {
       m_Position = 0;
       m_DelimiterStack = [];
@@ -97,14 +97,14 @@ public partial class SyntacticAnalyzer
       m_Tokens = tokenizeResult.Tokens;
    }
 
-   public SyntaxNode Analyze()
+   public CppSyntaxTree Parse()
    {
-      SyntaxNode root = new();
+      CppSyntaxTree root = new();
 
       SkipUntilNextEngineHeader();
       while (!IsEndOfFile)
       {
-         if (AcceptDeclaration(out SyntaxNode? node))
+         if (AcceptDeclaration(out Node? node))
          {
             root.AddChild(node);
             continue;
@@ -116,7 +116,7 @@ public partial class SyntacticAnalyzer
       return root;
    }
 
-   public bool AcceptDeclaration(out SyntaxNode? node)
+   public bool AcceptDeclaration(out Node? node)
    {
       if (IsEndOfFile || CurrentTokenType != TokenType.EngineHeader)
       {
@@ -127,7 +127,7 @@ public partial class SyntacticAnalyzer
       return AcceptClassDeclaration(out node) || AcceptEnumDeclaration(out node);
    }
 
-   private bool AcceptClassDeclaration(out SyntaxNode? node)
+   private bool AcceptClassDeclaration(out Node? node)
    {
       int firstNodeIndex = m_Position;
       if (!TryAcceptEngineHeadear("UCLASS", out HeaderNode? engineHeaderNode))
@@ -138,7 +138,7 @@ public partial class SyntacticAnalyzer
 
       if (!AcceptKeyword("class"))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected \"class\" keyword.");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, "Expected \"class\" keyword.");
       }
 
       bool hasImportExportAttribute = AcceptImportExportClassAttribute();
@@ -146,7 +146,7 @@ public partial class SyntacticAnalyzer
       StringView className = CurrentTokenValue;
       if (hasImportExportAttribute)
       {
-         ExpectFormat(TokenType.Identifier, "Expected identifier after \"{0}\" keyword.", m_Tokens[m_Position - 1].ValueView);
+         ExpectFormat(TokenType.Identifier, "Expected identifier after \"{0}\" keyword.", m_Tokens[m_Position - 1].Text);
       }
       else
       {
@@ -163,7 +163,7 @@ public partial class SyntacticAnalyzer
       // forward declaration
       if (AcceptExact(TokenType.Symbol, ";"))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, "UCLASS should be used only with class definition.");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, "UCLASS should be used only with class definition.");
       }
 
       ClassNode classNode = new(className);
@@ -175,7 +175,7 @@ public partial class SyntacticAnalyzer
       int curlyBraceCount = 0;
       while (!IsEndOfFile)
       {
-         if (AcceptClassMemberDeclaration(out SyntaxNode? classMemberNode))
+         if (AcceptClassMemberDeclaration(out Node? classMemberNode))
          {
             classNode.AddChild(classMemberNode);
             continue;
@@ -199,6 +199,7 @@ public partial class SyntacticAnalyzer
          m_Position++;
       }
 
+      classNode.SetTokenRange(firstNodeIndex, m_Position - 1);
       node = classNode;
       return true;
    }
@@ -209,12 +210,12 @@ public partial class SyntacticAnalyzer
          || !AcceptExact(TokenType.Symbol, "(")
          || !AcceptExact(TokenType.Symbol, ")"))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected GENERATED_BODY(). " +
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, "Expected GENERATED_BODY(). " +
             "It should be the first thing in the class body, even before access specifiers).");
       }
    }
 
-   private bool AcceptClassMemberDeclaration(out SyntaxNode? node)
+   private bool AcceptClassMemberDeclaration(out Node? node)
    {
       if (IsEndOfFile || CurrentTokenType != TokenType.EngineHeader)
       {
@@ -225,7 +226,7 @@ public partial class SyntacticAnalyzer
       return AcceptFunctionDeclaration(out node);
    }
 
-   private bool AcceptFunctionDeclaration(out SyntaxNode? node)
+   private bool AcceptFunctionDeclaration(out Node? node)
    {
       int firstNodeIndex = m_Position;
       if (!TryAcceptEngineHeadear("UFUNCTION", out HeaderNode? engineHeaderNode))
@@ -252,16 +253,16 @@ public partial class SyntacticAnalyzer
 
       if (functionNameToken.Type != TokenType.Identifier)
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected function name.");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, "Expected function name.");
       }
 
       int identifierTokenIndex = m_Position - 1;
       if (!IsEndOfFile && m_Tokens[identifierTokenIndex].Type != TokenType.Identifier)
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected function name.");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, "Expected function name.");
       }
 
-      FunctionNode functionNode = new(functionNameToken.ValueView);
+      FunctionNode functionNode = new(functionNameToken.Text);
 
       functionNode.AddChild(engineHeaderNode);
       functionNode.IsVirtual = functionSpecifiers.Contains("virtual");
@@ -277,7 +278,7 @@ public partial class SyntacticAnalyzer
 
       if (!TrySkipDelimiters('{', '}') && !AcceptExact(TokenType.Symbol, ";"))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected \";\" or function body after function declaration.");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, "Expected \";\" or function body after function declaration.");
       }
 
       node = functionNode;
@@ -310,7 +311,7 @@ public partial class SyntacticAnalyzer
          yield return ConsumeFunctionParameter(paremeterIndex++);
       }
 
-      throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected \")\" after parameter list.");
+      throw CreateIllFormedCodeException(CurrentTokenTextPosition, "Expected \")\" after parameter list.");
    }
 
    private FunctionParameterNode ConsumeFunctionParameter(int parameterIndex)
@@ -366,7 +367,7 @@ public partial class SyntacticAnalyzer
       return false;
    }
 
-   private bool AcceptEnumDeclaration(out SyntaxNode? node)
+   private bool AcceptEnumDeclaration(out Node? node)
    {
       int firstNodeIndex = m_Position;
       if (!TryAcceptEngineHeadear("UENUM", out HeaderNode? engineHeaderNode))
@@ -377,7 +378,7 @@ public partial class SyntacticAnalyzer
 
       if (!AcceptKeyword("enum"))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected \"enum\" keyword.");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, "Expected \"enum\" keyword.");
       }
 
       _ = AcceptKeyword("class") || AcceptKeyword("struct");
@@ -394,7 +395,7 @@ public partial class SyntacticAnalyzer
       // forward declaration
       if (AcceptExact(TokenType.Symbol, ";"))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, "UENUM should be used only with enum definition.");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, "UENUM should be used only with enum definition.");
       }
 
       enumNode.AddChild(engineHeaderNode);
@@ -403,7 +404,7 @@ public partial class SyntacticAnalyzer
 
       while (!IsEndOfFile)
       {
-         if (TryAcceptEnumItem(out SyntaxNode? enumItemNode))
+         if (TryAcceptEnumItem(out Node? enumItemNode))
          {
             enumNode.AddChild(enumItemNode);
             continue;
@@ -419,7 +420,7 @@ public partial class SyntacticAnalyzer
             break;
          }
 
-         throw CreateIllFormedCodeException(CurrentTokenPosition, "Unexpected token.");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, "Unexpected token.");
       }
 
       ExpectExact(TokenType.Symbol, ";", "Expected \";\" after enum declaration.");
@@ -428,7 +429,7 @@ public partial class SyntacticAnalyzer
       return true;
    }
 
-   private bool TryAcceptEnumItem(out SyntaxNode? node)
+   private bool TryAcceptEnumItem(out Node? node)
    {
       int startTokenIndex = m_Position;
       bool hasEngineHeader = TryAcceptEngineHeadear("UMETA", out HeaderNode? engineHeaderNode);
@@ -437,7 +438,7 @@ public partial class SyntacticAnalyzer
       {
          if (hasEngineHeader)
          {
-            throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected identifier after UMETA header.");
+            throw CreateIllFormedCodeException(CurrentTokenTextPosition, "Expected identifier after UMETA header.");
          }
 
          m_Position = startTokenIndex;
@@ -490,7 +491,7 @@ public partial class SyntacticAnalyzer
             break;
          }
 
-         throw CreateIllFormedCodeException(CurrentTokenPosition, $"Unexpected character \"{CurrentTokenValue}\".");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, $"Unexpected character \"{CurrentTokenValue}\".");
       }
 
       return true;
@@ -512,7 +513,7 @@ public partial class SyntacticAnalyzer
 
       if (!AcceptLiteral(out CppLiteralNode? literalNode))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected literal after \"=\".");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, "Expected literal after \"=\".");
       }
 
       specifierNode.AddChild(literalNode);
@@ -561,7 +562,7 @@ public partial class SyntacticAnalyzer
 
       if (!long.TryParse(integerLiteral.Span, out long value))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition,
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition,
             "Invalid integer literal. Integer literals are limited to what C# can parse.");
       }
 
@@ -583,7 +584,7 @@ public partial class SyntacticAnalyzer
 
       if (stringLiteral.Length < 2 || stringLiteral[0] != '"' || stringLiteral[^1] != '"')
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition,
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition,
             "Invalid string literal. Don't use prefixes or suffixes.");
       }
 
@@ -617,7 +618,7 @@ public partial class SyntacticAnalyzer
 
       if (IsEndOfFile)
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, $"Expected \"{closeDelimiter}\".");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, $"Expected \"{closeDelimiter}\".");
       }
    }
 
@@ -660,7 +661,7 @@ public partial class SyntacticAnalyzer
 
       if (m_DelimiterStack.Count > 0)
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, $"Expected \"{m_DelimiterStack.Peek()}\".");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, $"Expected \"{m_DelimiterStack.Peek()}\".");
       }
    }
 
@@ -705,7 +706,7 @@ public partial class SyntacticAnalyzer
 
       if (m_DelimiterStack.Count > 0)
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, $"Expected \"{m_DelimiterStack.Peek()}\".");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, $"Expected \"{m_DelimiterStack.Peek()}\".");
       }
    }
 
@@ -739,7 +740,7 @@ public partial class SyntacticAnalyzer
 
       if (m_DelimiterStack.Count > 0)
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, $"Expected \"{m_DelimiterStack.Peek()}\".");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, $"Expected \"{m_DelimiterStack.Peek()}\".");
       }
    }
 
@@ -747,7 +748,7 @@ public partial class SyntacticAnalyzer
    {
       if (!TrySkipDelimiters(openChar, closeChar))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, "Expected \"{\".");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, "Expected \"{\".");
       }
    }
 
@@ -778,7 +779,7 @@ public partial class SyntacticAnalyzer
 
       if (scopeCount != 0)
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, $"Expected \"{closeChar}\".");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, $"Expected \"{closeChar}\".");
       }
 
       return true;
@@ -788,7 +789,7 @@ public partial class SyntacticAnalyzer
    {
       if (!AcceptExact(type, value))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, message ?? "Unexpected token.");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, message ?? "Unexpected token.");
       }
    }
 
@@ -868,7 +869,7 @@ public partial class SyntacticAnalyzer
    {
       if (!AcceptKeyword(value))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, message ?? $"Expected \"{value}\" keyword.");
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, message ?? $"Expected \"{value}\" keyword.");
       }
    }
 
@@ -929,7 +930,7 @@ public partial class SyntacticAnalyzer
    {
       if (!Accept(type, out tokenValue))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, message);
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, message);
       }
    }
 
@@ -950,7 +951,7 @@ public partial class SyntacticAnalyzer
    {
       if (!Accept(type))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, string.Format(format, arg0));
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, string.Format(format, arg0));
       }
    }
 
@@ -958,7 +959,7 @@ public partial class SyntacticAnalyzer
    {
       if (!Accept(type))
       {
-         throw CreateIllFormedCodeException(CurrentTokenPosition, message);
+         throw CreateIllFormedCodeException(CurrentTokenTextPosition, message);
       }
    }
 
@@ -981,9 +982,9 @@ public partial class SyntacticAnalyzer
    [GeneratedRegex(@"^[A-Z][A-Z0-9_]*_API$", RegexOptions.Compiled)]
    private static partial Regex GetImportExportClassAttributeRegex();
 
-   private static IllFormedCodeException CreateIllFormedCodeException(int contentPosition, string message)
+   private static IllFormedCodeException CreateIllFormedCodeException(int textPosition, string message)
    {
-      SourceFilePosition position = new(SourceFilePositionType.ContentPosition, contentPosition);
+      SourceFileTextPosition position = new(SourceFileTextPositionType.TextPosition, textPosition);
       return new IllFormedCodeException(position, message);
    }
 }

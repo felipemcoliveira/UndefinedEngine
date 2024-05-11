@@ -35,22 +35,23 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="CppSyntaxTree\ClassNode.cs" />
-    <Compile Include="CppSyntaxTree\HeaderNode.cs" />
-    <Compile Include="CppSyntaxTree\EnumItemNode.cs" />
-    <Compile Include="CppSyntaxTree\EnumNode.cs" />
-    <Compile Include="CppSyntaxTree\FunctionNode.cs" />
-    <Compile Include="CppSyntaxTree\FunctionParameterNode.cs" />
-    <Compile Include="CppSyntaxTree\HeaderSpecifierNode.cs" />
-    <Compile Include="CppSyntaxTree\IllFormedCodeException.cs" />
-    <Compile Include="CppSyntaxTree\LexicalAnalysis.cs" />
-    <Compile Include="CppSyntaxTree\LiteralNode.cs" />
-    <Compile Include="CppSyntaxTree\SourceFileContentPreprocessor.cs" />
-    <Compile Include="CppSyntaxTree\SourceFile.cs" />
-    <Compile Include="CppSyntaxTree\SyntacticAnalyzer.cs" />
-    <Compile Include="CppSyntaxTree\SyntaxNode.cs" />
-    <Compile Include="CppSyntaxTree\Token.cs" />
-    <Compile Include="CppSyntaxTree\Tokenizer.cs" />
-    <Compile Include="CppSyntaxTree\TokenType.cs" />
+    <Compile Include="SyntaxTree\ClassNode.cs" />
+    <Compile Include="SyntaxTree\HeaderNode.cs" />
+    <Compile Include="SyntaxTree\EnumItemNode.cs" />
+    <Compile Include="SyntaxTree\EnumNode.cs" />
+    <Compile Include="SyntaxTree\FunctionNode.cs" />
+    <Compile Include="SyntaxTree\FunctionParameterNode.cs" />
+    <Compile Include="SyntaxTree\HeaderSpecifierNode.cs" />
+    <Compile Include="SyntaxTree\IllFormedCodeException.cs" />
+    <Compile Include="SyntaxTree\LexicalAnalysis.cs" />
+    <Compile Include="SyntaxTree\LiteralNode.cs" />
+    <Compile Include="SyntaxTree\CppSyntaxTree.cs" />
+    <Compile Include="SyntaxTree\SourceFileContentPreprocessor.cs" />
+    <Compile Include="SyntaxTree\SourceFile.cs" />
+    <Compile Include="SyntaxTree\SyntacticAnalyzer.cs" />
+    <Compile Include="SyntaxTree\Node.cs" />
+    <Compile Include="SyntaxTree\Token.cs" />
+    <Compile Include="SyntaxTree\Tokenizer.cs" />
+    <Compile Include="SyntaxTree\TokenType.cs" />
   </ItemGroup>
 </Project>

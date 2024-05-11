@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-public class Tokenizer
+internal class Tokenizer
 {
    private int EndOfFilePosition => m_SourceFileContent.Length;
    private bool IsEndOfFile => Position >= EndOfFilePosition;
@@ -380,10 +380,8 @@ public class Tokenizer
       tokens.Add(new
       (
          type: type,
-         contentPosition: position,
-         contentView: m_SourceFileContentMemory.Slice(position, length),
-         index: tokens.Count
-      ));
+         textPosition: position,
+         text: m_SourceFileContentMemory.Slice(position, length)));
    }
 
    private bool TryConsumeNumericLiteralDigits(int numericBase)
@@ -482,7 +480,7 @@ public class Tokenizer
    /// current position is at the beginning (first quote) of the raw literal
    /// string.
    /// </summary>
-   /// <param name="start">ContentPosition of the first quote.</param>
+   /// <param name="start">TextPosition of the first quote.</param>
    /// <exception cref="IllFormedCodeException">Thrown when the syntax of the
    ///    raw string literal does not conform to C++ standards. This could be
    ///    due to an incorrect position (missing opening quote), improper delimiter
@@ -976,7 +974,7 @@ public class Tokenizer
 
    private static IllFormedCodeException CreateIllFormedCodeException(int contentPosition, string message)
    {
-      SourceFilePosition position = new(SourceFilePositionType.ContentPosition, contentPosition);
+      SourceFileTextPosition position = new(SourceFileTextPositionType.TextPosition, contentPosition);
       return new IllFormedCodeException(position, message);
    }
 }

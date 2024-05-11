@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-internal record struct SourceFilePreprocessResult(string RawFileContent, string FileContent, SourceFilePositionMap PositionMap);
+internal record struct SourceFilePreprocessResult(string RawFileContent, string FileContent, SourceFileTextPositionMap PositionMap);
 
 internal class SourceFileContentPreprocessor
 {
@@ -22,7 +22,7 @@ internal class SourceFileContentPreprocessor
    private int m_ContentPosition;
    private int m_CurrentLine;
    private int m_CurrentLineStart;
-   private readonly List<SourceFilePositionMapEntry> m_PositionMapEntries;
+   private readonly List<SourceFileTextPositionMapEntry> m_PositionMapEntries;
 
    public SourceFileContentPreprocessor(string rawFileContent)
    {
@@ -110,7 +110,7 @@ internal class SourceFileContentPreprocessor
       }
 
       string fileContent = new(m_FileContent, 0, m_ContentPosition);
-      SourceFilePositionMap positionMap = new(m_PositionMapEntries);
+      SourceFileTextPositionMap positionMap = new(m_PositionMapEntries);
       return new(m_RawFileContent, fileContent, positionMap);
    }
 
@@ -146,7 +146,7 @@ internal class SourceFileContentPreprocessor
    private void AddPositionMapEntry()
    {
       int column = m_RawContentPosition - m_CurrentLineStart;
-      if (m_PositionMapEntries[^1].ContentPosition == m_ContentPosition)
+      if (m_PositionMapEntries[^1].TextPosition == m_ContentPosition)
       {
          m_PositionMapEntries[^1] = new(m_ContentPosition, m_RawContentPosition, m_CurrentLine, column);
          return;
@@ -198,7 +198,7 @@ internal class SourceFileContentPreprocessor
 
    private static IllFormedCodeException CreateIllFormedCodeException(int contentPosition, string message)
    {
-      SourceFilePosition position = new(SourceFilePositionType.RawContentPosition, contentPosition);
+      SourceFileTextPosition position = new(SourceFileTextPositionType.RawTextPosition, contentPosition);
       return new IllFormedCodeException(position, message);
    }
 }

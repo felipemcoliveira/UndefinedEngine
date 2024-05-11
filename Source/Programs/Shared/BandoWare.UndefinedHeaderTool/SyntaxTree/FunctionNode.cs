@@ -4,7 +4,7 @@ using System.Diagnostics;
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
 [DebuggerDisplay("UFUNCTION {Name,nq}")]
-public class FunctionNode(StringView name) : SyntaxNode
+public class FunctionNode(StringView name) : Node
 {
    public StringView Name { get; } = name;
    public bool IsStatic { get; set; }

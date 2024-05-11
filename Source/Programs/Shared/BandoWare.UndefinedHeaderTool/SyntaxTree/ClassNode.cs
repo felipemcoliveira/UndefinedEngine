@@ -3,8 +3,8 @@ using System.Diagnostics;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-[DebuggerDisplay("UENUM Item {Name,nq}")]
-public class EnumItemNode(StringView name) : SyntaxNode
+[DebuggerDisplay("UCLASS {Name,nq}")]
+public class ClassNode(StringView name) : Node
 {
    public StringView Name { get; private set; } = name;
 }

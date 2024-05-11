@@ -3,8 +3,8 @@ using System.Diagnostics;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-[DebuggerDisplay("{Type,nq} (Header)")]
-public class HeaderNode(StringView type) : SyntaxNode
+[DebuggerDisplay("{Type,nq} HEADER")]
+public class HeaderNode(StringView type) : Node
 {
    public StringView Type { get; private set; } = type;
 }

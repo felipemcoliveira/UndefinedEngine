@@ -1,6 +1,6 @@
 ﻿namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-public abstract class CppLiteralNode : SyntaxNode
+public abstract class CppLiteralNode : Node
 {
 }
 
