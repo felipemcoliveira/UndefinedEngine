@@ -28,7 +28,9 @@ public static class ToolModeUtility
       foreach (Type type in Assembly.GetExecutingAssembly().GetTypes())
       {
          if (type.GetCustomAttribute<ToolModeAttribute>() is ToolModeAttribute toolModeAttribute)
+         {
             yield return (type, toolModeAttribute);
+         }
       }
    }
 }
