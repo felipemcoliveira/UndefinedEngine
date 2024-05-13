@@ -1,13 +1,16 @@
 using System;
-using System.Reflection;
 
 namespace BandoWare.Core;
 
-public class EnumArgumentParser : ArgumentParser
+public class EnumArgumentParser : CommandArgsParser
 {
-   public override object Parse(string arg, MemberInfo targetMember)
+   public override object ParseArgs(CommandLineArguments commandLineArguments, ReadOnlySpan<string> args, Type targetType)
    {
-      Type targetType = GetMemberTypeWithoutNullable(targetMember);
-      return Enum.Parse(targetType, arg, true);
+      if (args.Length > 1)
+      {
+         throw new CommandLineParseException("Too many arguments.");
+      }
+
+      return Enum.Parse(targetType, args[0], true);
    }
 }

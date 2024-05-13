@@ -9,7 +9,7 @@ public enum TokenType
    StringLiteral = 1 << 3,
    CharacterLiteral = 1 << 4,
    NumericLiteral = 1 << 5,
-   EngineHeader = 1 << 6,
+   HeaderMacro = 1 << 6,
    BooleanLiteral = 1 << 7,
    PointerLiteral = 1 << 8,
    EndOfFile = 1 << 9

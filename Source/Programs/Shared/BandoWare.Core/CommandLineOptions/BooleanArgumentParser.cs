@@ -1,11 +1,17 @@
-using System.Reflection;
+using System;
 
 namespace BandoWare.Core;
 
-public class BooleanArgumentParser : ArgumentParser
+public class BooleanArgumentParser : CommandArgsParser
 {
-   public override object Parse(string arg, MemberInfo targetMember)
+   public override object ParseArgs(CommandLineArguments commandLineArguments, ReadOnlySpan<string> args, Type targetType)
    {
+      if (args.Length > 1)
+      {
+         throw new CommandLineParseException("Too many arguments.");
+      }
+
+      string arg = args[0];
       if (arg.Equals("0"))
       {
          return false;

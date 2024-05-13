@@ -3,31 +3,6 @@ using System.Collections.Generic;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-public class SourceFile
-{
-   public string RawContent { get; }
-   public string Content { get; }
-   public string FilePath { get; }
-
-   private SourceFileTextPositionMap m_TextPositionMap;
-
-   public SourceFile(string rawContent, string filePath)
-   {
-      SourceFileContentPreprocessor preprocessor = new(rawContent);
-      SourceFilePreprocessResult preprocessResult = preprocessor.Preprocess();
-
-      Content = preprocessResult.FileContent;
-      RawContent = preprocessResult.RawFileContent;
-      m_TextPositionMap = preprocessResult.PositionMap;
-      FilePath = filePath;
-   }
-
-   public SourceFileTextPositionMapEntry GetTextPositionMapEntry(SourceFileTextPosition position)
-   {
-      return m_TextPositionMap.GetEntry(position);
-   }
-}
-
 /// <summary>
 /// On the first stage of source file parsing its rawContent is preprocessed
 /// </summary>
@@ -48,7 +23,7 @@ public enum SourceFileTextPositionType
 
 public record struct SourceFileTextPosition(SourceFileTextPositionType Type, int Value);
 
-public record struct SourceFileTextPositionMapEntry(int TextPosition, int RawTextPosition, int RawLineOffset, int RawColumnOffset);
+public record struct SourceFileTextPositionMapEntry(int TextPosition, int RawTextPosition, int Line, int Column);
 
 internal class TextPositionComparer : IComparer<SourceFileTextPositionMapEntry>
 {
@@ -66,19 +41,45 @@ internal class RawTextPositionComparer : IComparer<SourceFileTextPositionMapEntr
    }
 }
 
-public class SourceFileTextPositionMap
+internal class SourceFileTextPositionMap
 {
    private static readonly TextPositionComparer s_TextPositionComparer = new();
    private static readonly RawTextPositionComparer s_RawTextPositionComparer = new();
 
-   private readonly SourceFileTextPositionMapEntry[] m_Entries;
+   private readonly List<SourceFileTextPositionMapEntry> m_Entries = new(128);
 
-   internal SourceFileTextPositionMap(List<SourceFileTextPositionMapEntry> entries)
+   internal SourceFileTextPositionMap()
    {
-      m_Entries = [.. entries];
+      m_Entries.Add(new SourceFileTextPositionMapEntry(0, 0, 1, 1));
    }
 
-   public SourceFileTextPositionMapEntry GetEntry(SourceFileTextPosition position)
+   internal void AddEntry(int textPosition, int rawTextPosition, int line, int column)
+   {
+      if (m_Entries[^1].TextPosition == textPosition)
+      {
+         m_Entries[^1] = new SourceFileTextPositionMapEntry(textPosition, rawTextPosition, line, column);
+         return;
+      }
+
+      m_Entries.Add(new SourceFileTextPositionMapEntry(textPosition, rawTextPosition, line, column));
+   }
+
+   public void GetLineAndColumn(SourceFileTextPosition position, out int line, out int column)
+   {
+      int entryIndex = GetEntryIndex(position);
+
+      int columnOffset = position.Type switch
+      {
+         SourceFileTextPositionType.TextPosition => position.Value - m_Entries[entryIndex].TextPosition,
+         SourceFileTextPositionType.RawTextPosition => position.Value - m_Entries[entryIndex].RawTextPosition,
+         _ => throw new NotImplementedException(position.Type.ToString())
+      };
+
+      line = m_Entries[entryIndex].Line;
+      column = m_Entries[entryIndex].Column + columnOffset;
+   }
+
+   private int GetEntryIndex(SourceFileTextPosition position)
    {
       IComparer<SourceFileTextPositionMapEntry> comparer = position.Type switch
       {
@@ -88,12 +89,12 @@ public class SourceFileTextPositionMap
       };
 
       SourceFileTextPositionMapEntry compareEntry = new(position.Value, position.Value, 0, 0);
-      int index = Array.BinarySearch(m_Entries, compareEntry, comparer);
+      int index = m_Entries.BinarySearch(compareEntry, comparer);
       if (index < 0)
       {
          index = ~index - 1;
       }
 
-      return m_Entries[index];
+      return index;
    }
 }

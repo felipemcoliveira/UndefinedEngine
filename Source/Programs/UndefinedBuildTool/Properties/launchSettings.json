@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "UndefinedBuildTool": {
+      "commandName": "Project",
+      "commandLineArgs": "-Build"
+    }
+  }
+}

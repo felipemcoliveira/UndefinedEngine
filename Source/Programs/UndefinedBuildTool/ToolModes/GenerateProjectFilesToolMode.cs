@@ -6,10 +6,10 @@ namespace BandoWare.UndefinedBuildTool;
 [ToolMode("GenerateProjectFiles")]
 public class GenerateProjectFilesToolMode : ToolMode
 {
-   [CommandLine("-VS2022", Value = "VisualStudio2022", Description = "Generates project files for Visual Studio 2022.")]
-   [CommandLine("-VS2019", Value = "VisualStudio2019", Description = "Generates project files for Visual Studio 2019.")]
-   [CommandLine("-VS2017", Value = "VisualStudio2017", Description = "Generates project files for Visual Studio 2017.")]
-   [CommandLine("-VSLatest", Value = "VisualStudioLatest", Description = "Generates project files for the latest version of Visual Studio.")]
+   [CommandLine("-VS2022", Value = Editor.VisualStudio2022, Description = "Generates project files for Visual Studio 2022.")]
+   [CommandLine("-VS2019", Value = Editor.VisualStudio2019, Description = "Generates project files for Visual Studio 2019.")]
+   [CommandLine("-VS2017", Value = Editor.VisualStudio2017, Description = "Generates project files for Visual Studio 2017.")]
+   [CommandLine("-VSLatest", Value = Editor.VisualStudioLatest, Description = "Generates project files for the latest version of Visual Studio.")]
    public Editor TargetEditor { get; set; } = Editor.None;
 
    private ScopedLogger m_Logger;

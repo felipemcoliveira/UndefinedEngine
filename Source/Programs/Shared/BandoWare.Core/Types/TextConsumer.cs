@@ -3,6 +3,13 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace BandoWare.Core;
 
+public enum IdentifierStyle
+{
+   AlphanumericWithUnderscore,
+   AlphanumericWithDash,
+   Alphanumeric,
+}
+
 public ref struct TextConsumer
 {
    public readonly bool IsEndOfText => Position >= Chars.Length;
@@ -16,7 +23,23 @@ public ref struct TextConsumer
       Chars = chars;
    }
 
-   public bool TryConsumeIdentifier([NotNullWhen(true)] out string? identifier)
+   public bool TryConsumeIdentifier(IdentifierStyle style = IdentifierStyle.AlphanumericWithUnderscore)
+   {
+      return TryConsumeIdentifier(out _, style);
+   }
+
+   public bool TryConsumeIdentifier([NotNullWhen(true)] out string? identifier, IdentifierStyle style = IdentifierStyle.AlphanumericWithUnderscore)
+   {
+      return style switch
+      {
+         IdentifierStyle.AlphanumericWithUnderscore => TryConsumeIdentifierAlphaNumericWithUnderscore(out identifier),
+         IdentifierStyle.AlphanumericWithDash => TryConsumeIdentifierAlphaNumericWithDash(out identifier),
+         IdentifierStyle.Alphanumeric => TryConsumeIdentifierAlphanumeric(out identifier),
+         _ => throw new ArgumentOutOfRangeException(nameof(style)),
+      };
+   }
+
+   private bool TryConsumeIdentifierAlphaNumericWithUnderscore([NotNullWhen(true)] out string? identifier)
    {
       if (IsEndOfText)
       {
@@ -32,6 +55,54 @@ public ref struct TextConsumer
       }
 
       while (Position < Chars.Length && (char.IsLetterOrDigit(Chars[Position]) || Chars[Position] == '_'))
+      {
+         Position++;
+      }
+
+      identifier = Chars[start..Position].ToString();
+      return true;
+   }
+
+   private bool TryConsumeIdentifierAlphaNumericWithDash([NotNullWhen(true)] out string? identifier)
+   {
+      if (IsEndOfText)
+      {
+         identifier = null;
+         return false;
+      }
+
+      int start = Position;
+      if (!char.IsLetter(Chars[Position]))
+      {
+         identifier = null;
+         return false;
+      }
+
+      while (Position < Chars.Length && (char.IsLetterOrDigit(Chars[Position]) || Chars[Position] == '-'))
+      {
+         Position++;
+      }
+
+      identifier = Chars[start..Position].ToString();
+      return true;
+   }
+
+   private bool TryConsumeIdentifierAlphanumeric([NotNullWhen(true)] out string? identifier)
+   {
+      if (IsEndOfText)
+      {
+         identifier = null;
+         return false;
+      }
+
+      int start = Position;
+      if (!char.IsLetter(Chars[Position]))
+      {
+         identifier = null;
+         return false;
+      }
+
+      while (Position < Chars.Length && char.IsLetterOrDigit(Chars[Position]))
       {
          Position++;
       }

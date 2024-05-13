@@ -43,8 +43,15 @@ public class HelpToolMode(CommandLineArguments commandLineArguments) : ToolMode
 
       Console.ForegroundColor = ConsoleColor.DarkGray;
 
-      string description = argumentTarget.Attribute.Description ?? "No description provided.";
-      Console.WriteLine($"    Description: {description}");
+
+      if (argumentTarget.Attribute.Description == null)
+      {
+         Console.WriteLine("    No description provided.");
+      }
+      else
+      {
+         Console.WriteLine($"    Description: {argumentTarget.Attribute.Description}");
+      }
 
       Console.WriteLine();
       Console.ResetColor();

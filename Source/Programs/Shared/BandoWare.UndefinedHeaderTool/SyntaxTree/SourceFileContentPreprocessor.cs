@@ -1,9 +1,13 @@
 using System;
-using System.Collections.Generic;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
-internal record struct SourceFilePreprocessResult(string RawFileContent, string FileContent, SourceFileTextPositionMap PositionMap);
+internal record struct SourceFilePreprocessResult
+(
+   string RawSourceFileText,
+   string ProcessedSourceFileText,
+   SourceFileTextPositionMap PositionMap
+);
 
 internal class SourceFileContentPreprocessor
 {
@@ -13,33 +17,38 @@ internal class SourceFileContentPreprocessor
       Discard
    }
 
-   private bool IsEndOfFile => m_RawContentPosition >= m_FileContent.Length;
-   private char CurrentCharacter => m_RawFileContent[m_RawContentPosition];
+   private bool IsEndOfFile => m_RawTextPosition >= m_ProcessedText.Length;
+   private char CurrentCharacter => m_RawText[m_RawTextPosition];
+   private int CurrentColumn => m_RawTextPosition - m_CurrentLineStart + 1;
 
-   private readonly string m_RawFileContent;
-   private readonly char[] m_FileContent;
-   private int m_RawContentPosition;
-   private int m_ContentPosition;
+   private readonly string m_SourceFilePath;
+   private readonly string m_RawText;
+   private readonly char[] m_ProcessedText;
+   private int m_RawTextPosition;
+   private int m_ProcessedTextPosition;
    private int m_CurrentLine;
    private int m_CurrentLineStart;
-   private readonly List<SourceFileTextPositionMapEntry> m_PositionMapEntries;
+   private SourceFileTextPositionMap m_TextPositionMap;
 
-   public SourceFileContentPreprocessor(string rawFileContent)
+   public SourceFileContentPreprocessor(string sourceFileText, string sourceFilePath, SourceFileTextPositionMap sourceFileTextPosition)
    {
-      m_PositionMapEntries = new(rawFileContent.Length / 180);
-      m_RawFileContent = rawFileContent;
+      ArgumentNullException.ThrowIfNull(sourceFileText);
+      ArgumentNullException.ThrowIfNull(sourceFilePath);
+      ArgumentNullException.ThrowIfNull(sourceFileTextPosition);
 
-      // it assumes file content length will always be equal or less than the raw file
-      // content, because the preprocessing consist of only content stripping (like coments)
-      m_FileContent = GC.AllocateUninitializedArray<char>(m_RawFileContent.Length);
+      m_SourceFilePath = sourceFilePath;
+      m_RawText = sourceFileText;
+      m_TextPositionMap = sourceFileTextPosition;
+
+      // it assumes processed text length will always be equal or less than the raw file
+      // text, because the preprocessing consist of only text stripping (like coments)
+      m_ProcessedText = GC.AllocateUninitializedArray<char>(m_RawText.Length);
    }
 
    public SourceFilePreprocessResult Preprocess()
    {
-      m_CurrentLine = 0;
+      m_CurrentLine = 1;
       m_CurrentLineStart = 0;
-      m_PositionMapEntries.Clear();
-      m_PositionMapEntries.Add(default);
 
       while (!IsEndOfFile)
       {
@@ -61,7 +70,7 @@ internal class SourceFileContentPreprocessor
                   break;
                }
 
-               m_RawContentPosition++;
+               m_RawTextPosition++;
             }
 
             AddPositionMapEntry();
@@ -84,18 +93,18 @@ internal class SourceFileContentPreprocessor
                   continue;
                }
 
-               m_RawContentPosition++;
+               m_RawTextPosition++;
             }
 
             if (!terminated)
             {
-               throw CreateIllFormedCodeException(m_RawContentPosition, "Unterminated comment.");
+               throw new IllFormedCodeException(m_CurrentLine, CurrentColumn, m_SourceFilePath, m_RawText, "Unterminated comment.");
             }
 
             AddPositionMapEntry();
 
             // multi line comment should be replace with a white space
-            m_FileContent[m_ContentPosition++] = ' ';
+            m_ProcessedText[m_ProcessedTextPosition++] = ' ';
 
             continue;
          }
@@ -105,13 +114,12 @@ internal class SourceFileContentPreprocessor
             continue;
          }
 
-         m_FileContent[m_ContentPosition++] = CurrentCharacter;
-         m_RawContentPosition++;
+         m_ProcessedText[m_ProcessedTextPosition++] = CurrentCharacter;
+         m_RawTextPosition++;
       }
 
-      string fileContent = new(m_FileContent, 0, m_ContentPosition);
-      SourceFileTextPositionMap positionMap = new(m_PositionMapEntries);
-      return new(m_RawFileContent, fileContent, positionMap);
+      string fileContent = new(m_ProcessedText, 0, m_ProcessedTextPosition);
+      return new(m_RawText, fileContent, m_TextPositionMap);
    }
 
    private bool TryConsumeLineBreak(ConsumeMode mode = ConsumeMode.Write)
@@ -139,30 +147,23 @@ internal class SourceFileContentPreprocessor
    private void OnLineBreak()
    {
       m_CurrentLine++;
-      m_CurrentLineStart = m_RawContentPosition;
+      m_CurrentLineStart = m_RawTextPosition;
       AddPositionMapEntry();
    }
 
    private void AddPositionMapEntry()
    {
-      int column = m_RawContentPosition - m_CurrentLineStart;
-      if (m_PositionMapEntries[^1].TextPosition == m_ContentPosition)
-      {
-         m_PositionMapEntries[^1] = new(m_ContentPosition, m_RawContentPosition, m_CurrentLine, column);
-         return;
-      }
-
-      m_PositionMapEntries.Add(new(m_ContentPosition, m_RawContentPosition, m_CurrentLine, column));
+      m_TextPositionMap.AddEntry(m_ProcessedTextPosition, m_RawTextPosition, m_CurrentLine, m_RawTextPosition - m_CurrentLineStart);
    }
 
    private bool TryConsume(char c, ConsumeMode mode = ConsumeMode.Write)
    {
       if (!IsEndOfFile && CurrentCharacter == c)
       {
-         m_RawContentPosition++;
+         m_RawTextPosition++;
          if (mode == ConsumeMode.Write)
          {
-            m_FileContent[m_ContentPosition++] = c;
+            m_ProcessedText[m_ProcessedTextPosition++] = c;
          }
 
          return true;
@@ -173,19 +174,19 @@ internal class SourceFileContentPreprocessor
 
    private bool TryConsume(ReadOnlySpan<char> value, ConsumeMode mode = ConsumeMode.Write)
    {
-      int newPosition = m_RawContentPosition;
-      while (!IsEndOfFile && m_RawFileContent[newPosition] == value[newPosition - m_RawContentPosition])
+      int newPosition = m_RawTextPosition;
+      while (!IsEndOfFile && m_RawText[newPosition] == value[newPosition - m_RawTextPosition])
       {
          newPosition++;
-         if (newPosition - m_RawContentPosition == value.Length)
+         if (newPosition - m_RawTextPosition == value.Length)
          {
-            m_RawContentPosition = newPosition;
+            m_RawTextPosition = newPosition;
 
             if (mode == ConsumeMode.Write)
             {
                for (int i = 0; i < value.Length; i++)
                {
-                  m_FileContent[m_ContentPosition++] = value[i];
+                  m_ProcessedText[m_ProcessedTextPosition++] = value[i];
                }
             }
 
@@ -194,11 +195,5 @@ internal class SourceFileContentPreprocessor
       }
 
       return false;
-   }
-
-   private static IllFormedCodeException CreateIllFormedCodeException(int contentPosition, string message)
-   {
-      SourceFileTextPosition position = new(SourceFileTextPositionType.RawTextPosition, contentPosition);
-      return new IllFormedCodeException(position, message);
    }
 }

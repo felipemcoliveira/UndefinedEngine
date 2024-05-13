@@ -84,22 +84,26 @@ internal partial class SyntaxParser
 
    private int m_Position;
    private Stack<char> m_DelimiterStack;
-   private string m_SourceCode;
+   private string m_SourceFileText;
    private List<Token> m_Tokens;
-   private List<int> m_EngineHeaderTokenIndices;
+   private List<int> m_HeaderMacroTokenIndices;
+   private SourceFileTextPositionMap m_TextPositionMap;
+   private string m_SourceFilePath;
 
-   public SyntaxParser(TokenizeResult tokenizeResult)
+   public SyntaxParser(TokenizeResult tokenizeResult, SourceFileTextPositionMap sourceFileTextPositionMap)
    {
       m_Position = 0;
       m_DelimiterStack = [];
-      m_EngineHeaderTokenIndices = tokenizeResult.EngineHeaderTokenIndices;
-      m_SourceCode = tokenizeResult.SourceFile.Content;
+      m_HeaderMacroTokenIndices = tokenizeResult.HeaderMacroTokenIndices;
+      m_SourceFilePath = tokenizeResult.SourceFilePath;
+      m_SourceFileText = tokenizeResult.SourceFileText;
       m_Tokens = tokenizeResult.Tokens;
+      m_TextPositionMap = sourceFileTextPositionMap;
    }
 
-   public CppSyntaxTree Parse()
+   public RootNode Parse()
    {
-      CppSyntaxTree root = new();
+      RootNode root = new();
 
       SkipUntilNextEngineHeader();
       while (!IsEndOfFile)
@@ -113,12 +117,13 @@ internal partial class SyntaxParser
          SkipUntilNextEngineHeader();
       }
 
+      root.SetTokenRange(0, m_Tokens.Count - 1);
       return root;
    }
 
    public bool AcceptDeclaration(out Node? node)
    {
-      if (IsEndOfFile || CurrentTokenType != TokenType.EngineHeader)
+      if (IsEndOfFile || CurrentTokenType != TokenType.HeaderMacro)
       {
          node = null;
          return false;
@@ -210,14 +215,14 @@ internal partial class SyntaxParser
          || !AcceptExact(TokenType.Symbol, "(")
          || !AcceptExact(TokenType.Symbol, ")"))
       {
-         throw CreateIllFormedCodeException(CurrentTokenTextPosition, "Expected GENERATED_BODY(). " +
+         throw CreateIllFormedCodeException(m_Tokens[m_Position - 1].TextPosition, "Expected GENERATED_BODY(). " +
             "It should be the first thing in the class body, even before access specifiers).");
       }
    }
 
    private bool AcceptClassMemberDeclaration(out Node? node)
    {
-      if (IsEndOfFile || CurrentTokenType != TokenType.EngineHeader)
+      if (IsEndOfFile || CurrentTokenType != TokenType.HeaderMacro)
       {
          node = null;
          return false;
@@ -464,7 +469,7 @@ internal partial class SyntaxParser
       [NotNullWhen(true)] out HeaderNode? headerNode
    )
    {
-      if (!AcceptExact(TokenType.EngineHeader, headerName))
+      if (!AcceptExact(TokenType.HeaderMacro, headerName))
       {
          headerNode = null;
          return false;
@@ -629,7 +634,7 @@ internal partial class SyntaxParser
 
       while (!IsEndOfFile)
       {
-         if (m_DelimiterStack.Count == 0 && CurrentToken.Type == TokenType.EngineHeader)
+         if (m_DelimiterStack.Count == 0 && CurrentToken.Type == TokenType.HeaderMacro)
          {
             return;
          }
@@ -892,7 +897,7 @@ internal partial class SyntaxParser
 
    private bool AcceptEngineHeader(ReadOnlySpan<char> header)
    {
-      return AcceptExact(TokenType.EngineHeader, header);
+      return AcceptExact(TokenType.HeaderMacro, header);
    }
 
    private bool Peek(TokenType type)
@@ -982,9 +987,16 @@ internal partial class SyntaxParser
    [GeneratedRegex(@"^[A-Z][A-Z0-9_]*_API$", RegexOptions.Compiled)]
    private static partial Regex GetImportExportClassAttributeRegex();
 
-   private static IllFormedCodeException CreateIllFormedCodeException(int textPosition, string message)
+   private IllFormedCodeException CreateIllFormedCodeException(int position, string message)
    {
-      SourceFileTextPosition position = new(SourceFileTextPositionType.TextPosition, textPosition);
-      return new IllFormedCodeException(position, message);
+      return new IllFormedCodeException
+      (
+         position,
+         SourceFileTextPositionType.TextPosition,
+         m_TextPositionMap,
+         m_SourceFilePath,
+         m_SourceFileText,
+         message
+      );
    }
 }

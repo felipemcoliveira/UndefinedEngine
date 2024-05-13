@@ -1,28 +1,25 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Text.RegularExpressions;
 
 namespace BandoWare.Core;
 
+public record CommandTarget
+(
+   string CommandName,
+   Action<object?, object?> SetValue,
+   CommandLineAttribute Attribute,
+   MemberInfo MemberInfo,
+   Type Type
+);
 
-public class CommandTarget(string command, Action<object?, object?> setValue, CommandLineAttribute attribute, MemberInfo memberInfo, Type type)
+public class ParsedCommand(CommandTarget commandTarget)
 {
-   public string CommandName { get; } = command;
+   public CommandTarget CommandTarget { get; } = commandTarget;
+   public List<string> Arguments { get; } = [];
 
-   public Action<object?, object?> SetValue { get; } = setValue;
-
-   public Type Type { get; } = type;
-
-   public MemberInfo MemberInfo { get; } = memberInfo;
-
-   public CommandLineAttribute Attribute { get; } = attribute;
-}
-
-public class ArgumentValue(string rawValue, int position)
-{
-   public string RawValue { get; } = rawValue;
-   public int Position { get; } = position;
+   public int ArgumentCount => Arguments.Count;
 }
 
 public class CommandLineArguments
@@ -30,14 +27,12 @@ public class CommandLineArguments
    public string[] RawArguments { get; }
    public List<CommandTarget> CommandTargets { get; } = [];
 
-   private static readonly Dictionary<Type, ArgumentParser> s_DefaultValueParsers =
+   private static readonly Dictionary<Type, CommandArgsParser> s_DefaultValueParsers =
       CreateDefaultArgumentParsers();
 
-   private static readonly Regex s_DefaultValueConsumeRegex = new("^(?!-[a-zA-Z])");
-
-   private readonly Dictionary<string, int> m_CommandPosition = new(StringComparer.OrdinalIgnoreCase);
    private Dictionary<string, CommandTarget> m_CommandTargetByCommandName = new(StringComparer.OrdinalIgnoreCase);
-   private Dictionary<Type, List<CommandTarget>> m_CommandTargetByType = [];
+   private Dictionary<Type, List<CommandTarget>> m_CommandTargetsByType = [];
+   private Dictionary<CommandTarget, ParsedCommand> m_ParsedCommands = [];
 
    public CommandLineArguments(string[] arguments)
    {
@@ -51,41 +46,50 @@ public class CommandLineArguments
    {
       for (Type type = target.GetType(); type != typeof(object); type = type.BaseType!)
       {
-         if (m_CommandTargetByType.TryGetValue(type, out List<CommandTarget>? argumentTargets))
+         if (m_CommandTargetsByType.TryGetValue(type, out List<CommandTarget>? argumentTargets))
          {
-            foreach (CommandTarget argumentTarget in argumentTargets)
+            foreach (CommandTarget commandTarget in argumentTargets)
             {
-               if (!m_CommandPosition.TryGetValue(argumentTarget.CommandName, out int position))
+               if (!m_ParsedCommands.TryGetValue(commandTarget, out ParsedCommand? parsedCommand))
                {
                   continue;
                }
 
-               ArgumentParser argumentParser = GetArgumentParser(argumentTarget.Type);
-
-               if (argumentTarget.Attribute.ValueUsage != null)
+               if (commandTarget.Attribute.Value != null)
                {
-                  int nextPosition = position + 1;
-                  object? value = argumentParser.Parse(RawArguments[nextPosition], argumentTarget.MemberInfo);
-                  argumentTarget.SetValue(target, value);
+                  if (parsedCommand.ArgumentCount > 0)
+                  {
+                     throw new CommandLineParseException($"Command '{commandTarget.CommandName}' is not expecting any arguments.");
+                  }
+
+                  commandTarget.SetValue(target, commandTarget.Attribute.Value);
                   continue;
                }
 
-               if (argumentTarget.Attribute.Value != null)
+               if (parsedCommand.ArgumentCount == 0)
                {
-                  object? value = argumentParser.Parse(argumentTarget.Attribute.Value, argumentTarget.MemberInfo);
-                  argumentTarget.SetValue(target, value);
-                  continue;
+                  if (commandTarget.Type != typeof(bool) && commandTarget.Type != typeof(bool?))
+                  {
+                     throw new CommandLineParseException($"Missing argument for command '{commandTarget.CommandName}'.");
+                  }
+
+                  commandTarget.SetValue(commandTarget, true);
                }
 
-               else if (argumentTarget.Type == typeof(bool))
-               {
-                  argumentTarget.SetValue(target, true);
-               }
-
-               throw new InvalidOperationException("Invalid target.");
+               string[] args = parsedCommand.Arguments.ToArray();
+               object value = ParseArgs(commandTarget, args, commandTarget.Type);
+               commandTarget.SetValue(target, value);
             }
          }
       }
+   }
+
+   public object ParseArgs(CommandTarget commandTarget, ReadOnlySpan<string> args, Type targetType)
+   {
+      CommandArgsParser argumentParser = GetArgumentParser(commandTarget.Type);
+      argumentParser.Target = commandTarget;
+
+      return argumentParser.ParseArgs(this, args, targetType);
    }
 
    private void AddCommandTarget(CommandTarget commandTarget, Type containingType)
@@ -99,10 +103,10 @@ public class CommandLineArguments
          }
       }
 
-      if (!m_CommandTargetByType.TryGetValue(containingType, out List<CommandTarget>? commandTargetByName))
+      if (!m_CommandTargetsByType.TryGetValue(containingType, out List<CommandTarget>? commandTargetByName))
       {
          commandTargetByName = [];
-         m_CommandTargetByType.Add(containingType, commandTargetByName);
+         m_CommandTargetsByType.Add(containingType, commandTargetByName);
       }
 
       commandTargetByName.Add(commandTarget);
@@ -144,19 +148,22 @@ public class CommandLineArguments
       }
    }
 
-   private static ArgumentParser GetArgumentParser(Type targetType)
+   public static CommandArgsParser GetArgumentParser(Type targetType)
    {
       ArgumentNullException.ThrowIfNull(targetType, nameof(targetType));
-
-      Type? underlyingType = Nullable.GetUnderlyingType(targetType);
-      targetType = underlyingType ?? targetType;
+      targetType = TypeUtility.GetUderlyingType(targetType);
 
       if (targetType.IsEnum)
       {
          return s_DefaultValueParsers[typeof(Enum)];
       }
 
-      if (s_DefaultValueParsers.TryGetValue(targetType, out ArgumentParser? parser))
+      if (targetType.IsArray)
+      {
+         return s_DefaultValueParsers[typeof(Array)];
+      }
+
+      if (s_DefaultValueParsers.TryGetValue(targetType, out CommandArgsParser? parser))
       {
          return parser;
       }
@@ -164,7 +171,7 @@ public class CommandLineArguments
       throw new NotImplementedException();
    }
 
-   private static Dictionary<Type, ArgumentParser> CreateDefaultArgumentParsers()
+   private static Dictionary<Type, CommandArgsParser> CreateDefaultArgumentParsers()
    {
       NumberArgumentParser numberArgumentParser = new();
 
@@ -183,44 +190,57 @@ public class CommandLineArguments
          [typeof(decimal)] = numberArgumentParser,
          [typeof(string)] = new StringArgumentParser(),
          [typeof(bool)] = new BooleanArgumentParser(),
-         [typeof(Enum)] = new EnumArgumentParser()
+         [typeof(Enum)] = new EnumArgumentParser(),
+         [typeof(Array)] = new ArrayArgumentParser()
       };
-      ;
    }
 
    private void Parse(string[] args)
    {
-      for (int i = 0; i < args.Length; i++)
+      int argIndex = 0;
+      ParsedCommand? lastCommandSpec = null;
+      m_ParsedCommands = [];
+
+      while (argIndex < args.Length)
       {
-         if (!IsCommandIdentifier(args[i]))
+         if (TryConsumeCommand(args[argIndex], out CommandTarget? target))
          {
-            throw new CommandLineParseException($"Argument '{args[i]}' is not a command.");
-         }
-
-         if (!m_CommandTargetByCommandName.TryGetValue(args[i], out CommandTarget? commandTarget) || commandTarget == null)
-         {
-            throw new CommandLineParseException($"Command '{args[i]}' does not exist.");
-         }
-
-         m_CommandPosition.Add(args[i], i);
-
-         if (commandTarget.Attribute.ValueUsage == null)
-         {
+            lastCommandSpec = new ParsedCommand(target);
+            m_ParsedCommands.Add(target, lastCommandSpec);
+            argIndex++;
             continue;
          }
 
-         bool hasNext = i + 1 < args.Length;
-         if ((!hasNext || IsCommandIdentifier(args[i + 1])) && commandTarget.Attribute.Value == null)
+         if (lastCommandSpec == null)
          {
-            throw new CommandLineParseException($"Missing command '{args[i]}' value.");
+            throw new CommandLineParseException($"Invalid command '{args[argIndex]}'.");
          }
 
-         i++;
+         lastCommandSpec.Arguments.Add(args[argIndex]);
+         argIndex++;
       }
    }
 
-   public static bool IsCommandIdentifier(string command)
+   public bool TryConsumeCommand(string arg, [NotNullWhen(true)] out CommandTarget? target)
    {
-      return command.StartsWith('-') && command.Length > 1 && char.IsLetter(command[1]);
+      int position = 0;
+      TextConsumer textConsumer = new(ref position, arg);
+      if (!textConsumer.TryConsume('-') || !textConsumer.TryConsumeIdentifier(IdentifierStyle.AlphanumericWithDash))
+      {
+         target = null;
+         return false;
+      }
+
+      if (!textConsumer.IsEndOfText)
+      {
+         throw new CommandLineParseException($"Invalid command '{arg}'.");
+      }
+
+      if (!m_CommandTargetByCommandName.TryGetValue(arg, out target))
+      {
+         return false;
+      }
+
+      return true;
    }
 }

@@ -4,11 +4,22 @@ using System.Collections.Generic;
 
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
+internal record struct TokenizeResult
+(
+   List<Token> Tokens,
+   List<int> HeaderMacroTokenIndices,
+   string SourceFilePath,
+   string SourceFileText
+)
+{
+   public readonly bool HasHeaderMacro => HeaderMacroTokenIndices.Count > 0;
+}
+
 internal class Tokenizer
 {
-   private int EndOfFilePosition => m_SourceFileContent.Length;
+   private int EndOfFilePosition => m_SourceFileText.Length;
    private bool IsEndOfFile => Position >= EndOfFilePosition;
-   private char CurrentCharacter => m_SourceFileContent[Position];
+   private char CurrentCharacter => m_SourceFileText[Position];
 
    private int Position { get; set; }
 
@@ -16,15 +27,17 @@ internal class Tokenizer
    private static readonly HashSet<char> s_SymbolCharacters;
    private static readonly HashSet<StringView> s_AllSymbols;
 
-   private readonly SourceFile m_SourceFile;
-   private readonly string m_SourceFileContent;
-   private readonly ReadOnlyMemory<char> m_SourceFileContentMemory;
+   private readonly string m_SourceFileText;
+   private readonly string m_SourceFilePath;
+   private readonly SourceFileTextPositionMap m_TextPositionMap;
+   private readonly ReadOnlyMemory<char> m_SourceFileTextMemory;
 
-   public Tokenizer(SourceFile sourceFile)
+   public Tokenizer(string sourceFileText, string sourceFilePath, SourceFileTextPositionMap textPositionMap)
    {
-      m_SourceFile = sourceFile;
-      m_SourceFileContent = sourceFile.Content;
-      m_SourceFileContentMemory = sourceFile.Content.AsMemory();
+      m_SourceFileText = sourceFileText;
+      m_SourceFilePath = sourceFilePath;
+      m_TextPositionMap = textPositionMap;
+      m_SourceFileTextMemory = sourceFileText.AsMemory();
       Position = 0;
    }
 
@@ -129,13 +142,13 @@ internal class Tokenizer
          { "true", TokenType.BooleanLiteral },
          { "false", TokenType.BooleanLiteral },
          { "nullptr", TokenType.PointerLiteral },
-         { "UCLASS", TokenType.EngineHeader },
-         { "UENUM", TokenType.EngineHeader },
-         { "USTRUCT", TokenType.EngineHeader },
-         { "UMETHOD", TokenType.EngineHeader },
-         { "UMETA", TokenType.EngineHeader },
-         { "UPROPERTY", TokenType.EngineHeader },
-         { "UFUNCTION", TokenType.EngineHeader }
+         { "UCLASS", TokenType.HeaderMacro },
+         { "UENUM", TokenType.HeaderMacro },
+         { "USTRUCT", TokenType.HeaderMacro },
+         { "UMETHOD", TokenType.HeaderMacro },
+         { "UMETA", TokenType.HeaderMacro },
+         { "UPROPERTY", TokenType.HeaderMacro },
+         { "UFUNCTION", TokenType.HeaderMacro }
       };
 
       s_AllSymbols =
@@ -202,8 +215,8 @@ internal class Tokenizer
 
    public TokenizeResult Tokenize()
    {
-      List<Token> tokens = new(20 / m_SourceFileContent.Length);
-      List<int> engineHeaderTokenIndices = new(5);
+      List<Token> tokens = new(20 / m_SourceFileText.Length);
+      List<int> headerMacrosTokenIndices = new(5);
 
       Position = 0;
 
@@ -355,9 +368,9 @@ internal class Tokenizer
                }
 
                TokenType type = GetIdentifierTokenType(identifier);
-               if (type == TokenType.EngineHeader)
+               if (type == TokenType.HeaderMacro)
                {
-                  engineHeaderTokenIndices.Add(tokens.Count);
+                  headerMacrosTokenIndices.Add(tokens.Count);
                }
 
                AddToken(tokens, type, start, Position - start);
@@ -372,7 +385,7 @@ internal class Tokenizer
       }
 
       AddToken(tokens, TokenType.EndOfFile, EndOfFilePosition, 0);
-      return new(tokens, engineHeaderTokenIndices, m_SourceFile);
+      return new(tokens, headerMacrosTokenIndices, m_SourceFileText, m_SourceFilePath);
    }
 
    private void AddToken(List<Token> tokens, TokenType type, int position, int length)
@@ -381,7 +394,8 @@ internal class Tokenizer
       (
          type: type,
          textPosition: position,
-         text: m_SourceFileContentMemory.Slice(position, length)));
+         text: m_SourceFileTextMemory.Slice(position, length)
+      ));
    }
 
    private bool TryConsumeNumericLiteralDigits(int numericBase)
@@ -555,7 +569,7 @@ internal class Tokenizer
 
       while (length > 0)
       {
-         ReadOnlySpan<char> symbol = m_SourceFileContent.AsSpan().Slice(start, length);
+         ReadOnlySpan<char> symbol = m_SourceFileText.AsSpan().Slice(start, length);
          if (s_AllSymbols.Contains(symbol))
          {
             Position += length;
@@ -745,7 +759,7 @@ internal class Tokenizer
    private bool TryConsumeIdentifier(out ReadOnlySpan<char> identifier)
    {
       bool value = TryConsumeIdentifier(out int start, out int length);
-      identifier = m_SourceFileContent.AsSpan().Slice(start, length);
+      identifier = m_SourceFileText.AsSpan().Slice(start, length);
       return value;
    }
 
@@ -840,7 +854,7 @@ internal class Tokenizer
    private bool TryConsume(char c, int count)
    {
       int newPosition = Position;
-      while (newPosition < EndOfFilePosition && m_SourceFileContent[newPosition] == c)
+      while (newPosition < EndOfFilePosition && m_SourceFileText[newPosition] == c)
       {
          newPosition++;
          if (newPosition - Position == count)
@@ -856,7 +870,7 @@ internal class Tokenizer
    private bool TryConsume(ReadOnlySpan<char> token)
    {
       int newPosition = Position;
-      while (newPosition < EndOfFilePosition && m_SourceFileContent[newPosition] == token[newPosition - Position])
+      while (newPosition < EndOfFilePosition && m_SourceFileText[newPosition] == token[newPosition - Position])
       {
          newPosition++;
          if (newPosition - Position == token.Length)
@@ -873,7 +887,7 @@ internal class Tokenizer
    {
       int newPosition = Position;
       while (newPosition < EndOfFilePosition
-         && char.ToUpper(m_SourceFileContent[newPosition]) == char.ToUpper(token[newPosition - Position]))
+         && char.ToUpper(m_SourceFileText[newPosition]) == char.ToUpper(token[newPosition - Position]))
       {
          newPosition++;
          if (newPosition - Position == token.Length)
@@ -888,9 +902,9 @@ internal class Tokenizer
 
    private bool IsCharacterAt(int position, char c)
    {
-      if (position < m_SourceFileContent.Length)
+      if (position < m_SourceFileText.Length)
       {
-         return m_SourceFileContent[position] == c;
+         return m_SourceFileText[position] == c;
       }
 
       return false;
@@ -972,9 +986,15 @@ internal class Tokenizer
       return -1;
    }
 
-   private static IllFormedCodeException CreateIllFormedCodeException(int contentPosition, string message)
+   private IllFormedCodeException CreateIllFormedCodeException(int position, string message)
    {
-      SourceFileTextPosition position = new(SourceFileTextPositionType.TextPosition, contentPosition);
-      return new IllFormedCodeException(position, message);
+      return new IllFormedCodeException
+      (
+         position,
+         SourceFileTextPositionType.TextPosition,
+         m_TextPositionMap, m_SourceFilePath,
+         m_SourceFileText,
+         message
+      );
    }
 }

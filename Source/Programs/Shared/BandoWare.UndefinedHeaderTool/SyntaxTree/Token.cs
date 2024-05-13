@@ -4,7 +4,7 @@ using System.Diagnostics;
 namespace BandoWare.UndefinedHeaderTool.SyntaxTree;
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-public struct Token(TokenType type, int textPosition, StringView text)
+internal struct Token(TokenType type, int textPosition, StringView text)
 {
    public readonly int TextEndPosition => TextPosition + Text.Length;
 

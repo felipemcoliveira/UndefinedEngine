@@ -43,12 +43,12 @@
     <Compile Include="SyntaxTree\FunctionParameterNode.cs" />
     <Compile Include="SyntaxTree\HeaderSpecifierNode.cs" />
     <Compile Include="SyntaxTree\IllFormedCodeException.cs" />
-    <Compile Include="SyntaxTree\LexicalAnalysis.cs" />
     <Compile Include="SyntaxTree\LiteralNode.cs" />
     <Compile Include="SyntaxTree\CppSyntaxTree.cs" />
+    <Compile Include="SyntaxTree\RootNode.cs" />
     <Compile Include="SyntaxTree\SourceFileContentPreprocessor.cs" />
-    <Compile Include="SyntaxTree\SourceFile.cs" />
-    <Compile Include="SyntaxTree\SyntacticAnalyzer.cs" />
+    <Compile Include="SyntaxTree\SourceFileTextPositionMap.cs" />
+    <Compile Include="SyntaxTree\SyntaxParser.cs" />
     <Compile Include="SyntaxTree\Node.cs" />
     <Compile Include="SyntaxTree\Token.cs" />
     <Compile Include="SyntaxTree\Tokenizer.cs" />

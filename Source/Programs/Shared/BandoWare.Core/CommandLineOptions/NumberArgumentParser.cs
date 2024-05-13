@@ -16,7 +16,7 @@ sealed class CommandLineArgumentNumberStyleAttribute : Attribute
    }
 }
 
-public class NumberArgumentParser : ArgumentParser
+public class NumberArgumentParser : CommandArgsParser
 {
    private static Dictionary<Type, Func<string, NumberStyles, object>> s_ParseFunctions = new()
    {
@@ -33,19 +33,23 @@ public class NumberArgumentParser : ArgumentParser
       { typeof(decimal), (arg, style) => decimal.Parse(arg, style) }
    };
 
-   public override object Parse(string arg, MemberInfo targetMember)
+   public override object ParseArgs(CommandLineArguments commandLineArguments, ReadOnlySpan<string> args, Type targetType)
    {
+      if (args.Length > 1)
+      {
+         throw new CommandLineParseException("Too many arguments.");
+      }
+
       CommandLineArgumentNumberStyleAttribute? styleArgment
-         = targetMember.GetCustomAttribute<CommandLineArgumentNumberStyleAttribute>();
+         = Target.MemberInfo.GetCustomAttribute<CommandLineArgumentNumberStyleAttribute>();
 
       NumberStyles style = styleArgment?.Style ?? NumberStyles.Integer;
 
-      Type targetType = GetMemberTypeWithoutNullable(targetMember);
       if (!s_ParseFunctions.TryGetValue(targetType, out Func<string, NumberStyles, object>? parseFunction))
       {
          throw new InvalidOperationException("Invalid target type.");
       }
 
-      return parseFunction!(arg, style);
+      return parseFunction!(args[0], style);
    }
 }

@@ -38,17 +38,19 @@
   </ItemGroup>
   
   <ItemGroup>
+    <Compile Include="CommandLineOptions\ArrayArgumentParser.cs" />
     <Compile Include="Types\Architecture.cs" />
     <Compile Include="Types\Editor.cs" />
     <Compile Include="Types\Platform.cs" />
     <Compile Include="Types\StringView.cs" />
+    <Compile Include="Types\TextConsumer.cs" />
     <Compile Include="Types\Version.cs" />
     <Compile Include="Types\VisualStudioProductInfo.cs" />
     <Compile Include="Utilities\PlatformUtility.cs" />
     <Compile Include="Utilities\TypeUtility.cs" />
     <Compile Include="Utilities\VisualStudioUtility.cs" />
     <Compile Include="Utilities\ArchitectureUtility.cs" />
-    <Compile Include="CommandLineOptions\ArgumentParser.cs" />
+    <Compile Include="CommandLineOptions\CommandArgsParser.cs" />
     <Compile Include="CommandLineOptions\BooleanArgumentParser.cs" />
     <Compile Include="CommandLineOptions\CommandLineArguments.cs" />
     <Compile Include="CommandLineOptions\CommandLineAttribute.cs" />
