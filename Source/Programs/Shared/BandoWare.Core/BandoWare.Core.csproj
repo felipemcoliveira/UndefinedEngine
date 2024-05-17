@@ -39,6 +39,9 @@
   
   <ItemGroup>
     <Compile Include="CommandLineOptions\ArrayArgumentParser.cs" />
+    <Compile Include="FileSystem\DirectoryReference.cs" />
+    <Compile Include="FileSystem\FileReference.cs" />
+    <Compile Include="FileSystem\FileSystemReference.cs" />
     <Compile Include="Types\Architecture.cs" />
     <Compile Include="Types\Editor.cs" />
     <Compile Include="Types\Platform.cs" />
@@ -70,8 +73,5 @@
     <Compile Include="Container\Container.cs" />
     <Compile Include="Container\InjectAttribute.cs" />
     <Compile Include="Container\IContainer.cs" />
-  </ItemGroup>
-  <ItemGroup>
-
   </ItemGroup>
 </Project>
