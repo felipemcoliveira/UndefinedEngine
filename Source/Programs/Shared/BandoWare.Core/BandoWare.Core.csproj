@@ -39,6 +39,7 @@
   
   <ItemGroup>
     <Compile Include="CommandLineOptions\ArrayArgumentParser.cs" />
+    <Compile Include="CommandLineOptions\FileSystemReferenceParser.cs" />
     <Compile Include="FileSystem\DirectoryReference.cs" />
     <Compile Include="FileSystem\FileReference.cs" />
     <Compile Include="FileSystem\FileSystemReference.cs" />
