@@ -27,7 +27,7 @@ public class ToolModeOptions
    (
       "-Mode",
       ValueUsage = $"$Function:{nameof(GetModeValueUsage)}",
-      Description = "Generates project files."
+      Description = "The mode to run."
    )]
    public string ToolMode { get; set; } = "Help";
 
